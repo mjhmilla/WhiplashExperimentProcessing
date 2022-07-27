@@ -1,0 +1,13 @@
+*.zip
+*.tak
+*.csv
+*.mat
+*.acq
+*.log
+models/
+*.cal
+*.jpg
+*.JPG
+*.motive
+*.xlsx
+
