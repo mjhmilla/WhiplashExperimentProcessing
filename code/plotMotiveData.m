@@ -71,7 +71,7 @@ while(indexColumn < (length(colData)-3))
         % Form the rotation matrix
         %%
         rm = convertQuaternionToRotationMatrix(w,rx,ry,rz);
-        rm=rm';
+        %rm=rm';
         xyz = [x;y;z];
         for indexAxis=1:1:3
             naxis=zeros(3,1);
@@ -110,7 +110,7 @@ while(indexColumn < (length(colData)-3))
             assert(colData(indexColumn).Coordinate,'Z');
             lxyz(3,1) =colData(indexColumn).data(frameNumber,1);
             
-            gxyz = rm*lxyz;% + xyz; %g for global marker position;
+            gxyz = lxyz;% + xyz; %g for global marker position;
 
             plot3([xyz(1,1);gxyz(1,1)],...
                   [xyz(2,1);gxyz(2,1)],...
@@ -171,6 +171,9 @@ while(indexColumn < (length(colData)-3))
         flag_incrementColumn=0;
 
     end
+    xlim([-0.2,0.2]);
+    ylim([-0.1,0.3]);
+    zlim([-0.3,0.1]);
     if(flag_incrementColumn==1)        
         indexColumn=indexColumn+1;
     end

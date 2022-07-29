@@ -43,13 +43,12 @@ for i=1:1:length(sortedIdx)
     dataLabelsUpd(dataLabels == i) = sortedIdx(i,1);
 end
 dataLabels=dataLabelsUpd;
-%Now go and identify the onset: the first point where a label transitions
-%from a 1 to a 2:
-indexOnset=0;
+%Now go and identify all of the signal changes
+indexOnset=[];
 i = 2;
-while indexOnset == 0 && i < length(data)
+while i < length(data)
     if( dataLabels(i-1,1)==1 && dataLabels(i,1)==2)
-        indexOnset=i;
+        indexOnset=[indexOnset;i];
     end
     i=i+1;
 end
