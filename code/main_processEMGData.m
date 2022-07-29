@@ -145,10 +145,10 @@ for i=1:1:size(carBiopacDataB.labels,1)
 
             for k=1:1:length(indexOnset)
                 plot([1;1].*timeV(indexOnset(k,1)), ...
-                     [minVal;maxVal],'Color',[0,0,0]);
+                     [minVal;maxVal],'Color',[1,0,0]);
                 hold on;
                 plot([1].*timeV(indexOnset(k,1)), ...
-                     [maxVal],'o','Color',[0,0,0]);
+                     [maxVal],'o','Color',[1,0,0]);
                 hold on;
             end
         end

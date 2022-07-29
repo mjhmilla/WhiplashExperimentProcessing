@@ -41,7 +41,7 @@ ecgPeaks = find(biopacData.data(2:(end-1),indexECG) > thresholdEcgVal ...
 ecgPeaks = ecgPeaks+1;
 
 
-flag_debug=1;
+flag_debug=0;
 idxSubplot=1;
 timeV = [];
 if(flag_debug==1)
@@ -81,7 +81,7 @@ end
 % centered on each peak
 %%
 
-[b,a] = butter(2,highpassFilterFrequency/(0.5*sampleRate),'high');
+[b,a] = butter(4,highpassFilterFrequency/(0.5*sampleRate),'high');
 
 %Go find each EMG channel and process it
 flag_firstChannelFound=0;
