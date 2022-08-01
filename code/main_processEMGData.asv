@@ -151,7 +151,7 @@ if(flag_plotOnset==1)
     duration = (size(carBiopacSignal.data,1)/carBiopacSampleFrequency);
     timeV = [dt:dt:duration]';
     figOnset = figure;
-    figAdaptiveThreshold = figure;
+    figHist = figure;
 end
 
 for i=1:1:size(carBiopacSignal.labels,1)
@@ -171,8 +171,8 @@ for i=1:1:size(carBiopacSignal.labels,1)
         if(flag_plotOnset==1 && idxSubplot<=9)
             figure(figOnset);
             %subplot(3,3,idxSubplot)
-            row = ceil(idxSubplot/3);
-            col = max(1,idxSubplot-(row-1)*3);
+            row = floor((idxSubplot)/3)+1;
+            col = idxSubplot-row*3
             subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
 
             timeMin=min(timeV);
@@ -186,28 +186,23 @@ for i=1:1:size(carBiopacSignal.labels,1)
             hold on;
             box off;
             xlabel('Time');
-            ylabel('Std.');            
-            title(replaceCharacter(carBiopacSignal.labels(i,:),'_',' '));
+            ylabel('Std.');
+            title(carBiopacSignal.labels(i,:));
 
-
-            figure(figAdaptiveThreshold);
-            row = ceil(idxSubplot/3);
-            col = max(1,idxSubplot-(row-1)*3);
-            subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
-
-            plot(dataEdges(1,2:end),nData,'Color',[0,0,0]);
+            figure(figHist);
+            subplot(3,3,idxSubplot)
+            plot(dataEdges(1,2:end),nData);
             hold on;
             plot(onsetStandardDeviationThreshold ,...
-                 onsetPercentileThreshold,'.','MarkerSize',10);
+                 onsetPercentileThreshold,'o');
             hold on;
             text(onsetStandardDeviationThreshold, ...
-                onsetPercentileThreshold-0.05,...
+                onsetPercentileThreshold,...
                 sprintf('%1.2f',onsetStandardDeviationThreshold));
             hold on;
-            box off;
             xlabel('Std.');
-            ylabel('Cumulative Distribution');
-            title(replaceCharacter(carBiopacSignal.labels(i,:),'_',' '));
+            ylabel('Count');
+            title(carBiopacSignal.labels(i,:));
 
         end
 
@@ -219,9 +214,7 @@ for i=1:1:size(carBiopacSignal.labels,1)
 
         if(flag_plotOnset==1 && idxSubplot<=9)
             figure(figOnset);
-            row = ceil(idxSubplot/3);
-            col = max(1,idxSubplot-(row-1)*3);
-            subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
+            subplot(3,3,idxSubplot)
 
             minVal = 0;
             maxVal = max(data);
@@ -235,25 +228,11 @@ for i=1:1:size(carBiopacSignal.labels,1)
                 hold on;
 
             end
-            box off;
         end
         idxSubplot=idxSubplot+1;
 
     end
 end
-
-
-figOnset = configPlotExporter( figOnset,...
-                                pageWidthCm,...
-                                pageHeightCm);
-
-print('-dpdf', '../output/fig_Onset.pdf');
-
-figAdaptiveThreshold = configPlotExporter( figAdaptiveThreshold,...
-                                pageWidthCm,...
-                                pageHeightCm);
-
-print('-dpdf', '../output/fig_AdaptiveThresholds.pdf');
 
 
 
