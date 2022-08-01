@@ -49,21 +49,27 @@ ecgRemovalFilterWindowParams = struct('windowDuration',0.16,...
 %MG signals. Journal of Electromyography and Kinesiology. 2009;6(19):e554-5.
 
 %%
+% Accelerometer processing
+%%
+accelerometerLowpassFilterFrequency = 10;
+
+%%
 %EMG processing
 %%
-emgEnvelopeLowpassFilterFrequency = 5;
+emgEnvelopeLowpassFilterFrequency   = 5;
 
 onsetKmeansParameters = struct('numberOfClusters',2,... 
                                'standardDeviationThreshold', 3);
 
-onsetPercentileThreshold = 0.975;
+lowerPercentileThreshold = 0.975;
+upperThresholdScaling    = 0.5; %
 
 
 %%
 %Plotting configuration
 %%
-numberOfHorizontalPlotColumnsGeneric = 3;
-numberOfVerticalPlotRowsGeneric      = 3;
+maxPlotRows          = 4;
+maxPlotCols          = 3;
 plotWidthCm          = 4.5; 
 plotHeightCm         = 4.5;
 plotHorizMarginCm    = 1.5;
@@ -72,8 +78,8 @@ plotVertMarginCm     = 1.5;
 [subPlotPanel, ...
  pageWidthCm, ...
  pageHeightCm]= ...
-      plotConfigGeneric(  numberOfHorizontalPlotColumnsGeneric,...
-                          numberOfVerticalPlotRowsGeneric,...
+      plotConfigGeneric(  maxPlotCols,...
+                          maxPlotRows,...
                           plotWidthCm,...
                           plotHeightCm,...
                           plotHorizMarginCm,...
@@ -137,10 +143,19 @@ carBiopacDataB = calcEmgEnvelope(carBiopacDataA,emgKeyword, ...
     emgEnvelopeLowpassFilterFrequency, carBiopacSampleFrequency);
 
 %%
+% Smooth the accelerometer data
+%%
+carBiopacDataC = smoothAccelerations(carBiopacDataB,acc1Keyword,...
+    accelerometerLowpassFilterFrequency,carBiopacSampleFrequency);
+
+carBiopacDataC = smoothAccelerations(carBiopacDataC,acc2Keyword,...
+    accelerometerLowpassFilterFrequency,carBiopacSampleFrequency);
+
+%%
 % Identify the signal onset
 %%
 
-carBiopacSignal = carBiopacDataB;
+carBiopacSignal = carBiopacDataC;
 
 
 idxSubplot=1;
@@ -151,90 +166,82 @@ if(flag_plotOnset==1)
     duration = (size(carBiopacSignal.data,1)/carBiopacSampleFrequency);
     timeV = [dt:dt:duration]';
     figOnset = figure;
-    figAdaptiveThreshold = figure;
 end
 
 for i=1:1:size(carBiopacSignal.labels,1)
-    if(contains(carBiopacSignal.labels(i,:),emgKeyword))
+    if(contains(carBiopacSignal.labels(i,:),emgKeyword) ...
+            || contains(carBiopacSignal.labels(i,:),acc1Keyword)...
+            || contains(carBiopacSignal.labels(i,:),acc2Keyword))
         
-        data=carBiopacSignal.data(:,i);
 
-        data = data-mean(data);
-        data = abs(data)./std(data);
-       
-        %Evaluate the distribution of the data
-        [nData,dataEdges] = histcounts(data,100,'Normalization','cdf');
 
-        onsetStandardDeviationThreshold = ...
-            interp1(nData,dataEdges(1,2:end),onsetPercentileThreshold);
+        [peakIntervals, thresholdLower, thresholdUpper] = ...
+            findOnsetUsingAdaptiveThreshold(carBiopacSignal.data(:,i), ...
+                                    lowerPercentileThreshold,...
+                                    upperThresholdScaling);
 
-        if(flag_plotOnset==1 && idxSubplot<=9)
+%         if(    contains(carBiopacSignal.labels(i,:),acc1Keyword)...
+%             || contains(carBiopacSignal.labels(i,:),acc2Keyword) )
+% 
+%            [peakIntervalsNeg, thresholdLowerNeg, thresholdUpperNeg] = ...
+%                     findOnsetUsingAdaptiveThreshold(-carBiopacSignal.data(:,i), ...
+%                                             lowerPercentileThreshold,...
+%                                             upperThresholdScaling);
+% 
+%             peakIntervals = [peakIntervals;peakIntervalsNeg];
+%             
+%         end
+
+        if(flag_plotOnset==1 && idxSubplot<=(maxPlotCols*maxPlotRows))
             figure(figOnset);
-            %subplot(3,3,idxSubplot)
-            row = ceil(idxSubplot/3);
-            col = max(1,idxSubplot-(row-1)*3);
-            subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
-
-            timeMin=min(timeV);
-            timeMax=max(timeV);            
-            fill([timeMin;timeMax;timeMax;timeMin;timeMin],...
-                 [0;0;1;1;0].*onsetStandardDeviationThreshold,...
-                 [1,1,1].*0.75);
-            hold on;
-
-            plot(timeV,data,'Color',[0,0,0]);
-            hold on;
-            box off;
-            xlabel('Time');
-            ylabel('Std.');            
-            title(replaceCharacter(carBiopacSignal.labels(i,:),'_',' '));
-
-
-            figure(figAdaptiveThreshold);
-            row = ceil(idxSubplot/3);
-            col = max(1,idxSubplot-(row-1)*3);
-            subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
-
-            plot(dataEdges(1,2:end),nData,'Color',[0,0,0]);
-            hold on;
-            plot(onsetStandardDeviationThreshold ,...
-                 onsetPercentileThreshold,'.','MarkerSize',10);
-            hold on;
-            text(onsetStandardDeviationThreshold, ...
-                onsetPercentileThreshold-0.05,...
-                sprintf('%1.2f',onsetStandardDeviationThreshold));
-            hold on;
-            box off;
-            xlabel('Std.');
-            ylabel('Cumulative Distribution');
-            title(replaceCharacter(carBiopacSignal.labels(i,:),'_',' '));
-
-        end
-
-        
-        %onsetKmeansParameters.standardDeviationThreshold
-        [indexOnset, dataLabels] = findOnsetUsingKmeans(data,...
-            onsetKmeansParameters.numberOfClusters, ...
-            onsetStandardDeviationThreshold);
-
-        if(flag_plotOnset==1 && idxSubplot<=9)
-            figure(figOnset);
-            row = ceil(idxSubplot/3);
-            col = max(1,idxSubplot-(row-1)*3);
-            subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
-
-            minVal = 0;
-            maxVal = max(data);
-            for k=1:1:size(indexOnset,1)     
-                timeStart=timeV(indexOnset(k,1));
-                timeEnd=timeV(indexOnset(k,2));      
-
-                plot([1;1].*timeStart,[0;1].*maxVal,'-','Color',[1,0,0]);                
-                hold on;
-                plot([1].*timeStart,[1].*maxVal,'o','Color',[1,0,0]);                
-                hold on;
-
+            row = ceil(idxSubplot/maxPlotCols);
+            col = max(1,idxSubplot-(row-1)*maxPlotCols);
+            if(col > 3)
+                here=1;
             end
+            subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
+
+
+            minVal = min(carBiopacSignal.data(:,i));
+            maxVal = max(carBiopacSignal.data(:,i));
+            timeMin = min(timeV);
+            timeMax = max(timeV);
+
+            fill([timeMin;timeMax;timeMax;timeMin;timeMin],...
+                 [minVal;minVal;thresholdLower;thresholdLower;minVal],[1,1,1].*0.75,...
+                 'EdgeColor','none');
+            hold on;
+
+            plot([timeMin;timeMax],[1;1].*thresholdUpper,'--','Color',[0,0,0]);
+            hold on;            
+            
+            plot(timeV, carBiopacSignal.data(:,i),'Color',[0,0,0]);
+            hold on;            
+            
+            for k=1:1:size(peakIntervals,1)   
+                i1 = peakIntervals(k,1);
+                i2 = peakIntervals(k,2);
+                t0 = timeV(i1,1);
+                t1 = timeV(i2,1);     
+                v1 = carBiopacSignal.data(i1,i);
+                vMax = max(carBiopacSignal.data(i1:i2,i));
+                v2 = carBiopacSignal.data(i2,i);
+
+                plot([t0;t1;t1;t0;t0],[v1;v2;vMax;vMax;v1],'Color',[1,0,0]);
+                hold on;
+                tt = t0-(t1-t0)*0.05;
+                vt = v1;
+                plot(tt,vt,'o','Color',[1,0,0]);                
+                hold on;
+                text(tt,vt,sprintf('%1.3f',t0),...
+                    'VerticalAlignment','bottom',...
+                    'HorizontalAlignment','right');
+                hold on;
+                %axis tight;
+            end
+            xlabel('Time (s)');
+            ylabel('Value');
+            title(replaceCharacter(carBiopacSignal.labels(i,:),'_',' '));
             box off;
         end
         idxSubplot=idxSubplot+1;
@@ -248,15 +255,6 @@ figOnset = configPlotExporter( figOnset,...
                                 pageHeightCm);
 
 print('-dpdf', '../output/fig_Onset.pdf');
-
-figAdaptiveThreshold = configPlotExporter( figAdaptiveThreshold,...
-                                pageWidthCm,...
-                                pageHeightCm);
-
-print('-dpdf', '../output/fig_AdaptiveThresholds.pdf');
-
-
-
 
 here=1;
 

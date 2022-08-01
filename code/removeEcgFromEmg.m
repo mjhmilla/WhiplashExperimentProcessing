@@ -133,6 +133,7 @@ if(flag_ecgRemovalAlgorithm == 0)
 end
 
 %LSQ & subtract
+assert(flag_ecgRemovalAlgorithm==0,'flag_ecgRemovalAlgorithm=1 not yet ready');
 if(flag_ecgRemovalAlgorithm==1)
 
     %Find the ECG channel

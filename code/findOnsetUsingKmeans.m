@@ -1,4 +1,5 @@
-function [indexOnset, dataLabels] = findOnsetUsingKmeans(data, numberOfClusters,...
+function [indexOnset, dataLabels] = findOnsetUsingKmeans(data, ...
+                                    numberOfClusters,...
                                     onsetStandardDeviationThreshold)
 %%
 % This will group the data into numberOfClusters of data. 
@@ -17,14 +18,13 @@ function [indexOnset, dataLabels] = findOnsetUsingKmeans(data, numberOfClusters,
 % @params onsetStandardDeviationThreshold: The 2nd cluster must be at least
 %        this many standard deviations away from the mean to be included.
 % @returns [indexOnset, dataLabels]
-%  indexOnset: an n x 2 vector where each row contains the index of the 
+%  indexOnset:  an n x 2 vector where each row contains the index of the 
 %               beginning and the end of data that exceeds the desired
 %               threshold and is not in the lowest cluster
 %  dataLabels: the label of each point
 %       1: steady state
 %       2: dynamic state
 %%
-
 
 
 k = numberOfClusters;
@@ -38,12 +38,15 @@ k = numberOfClusters;
 data = data-mean(data);
 data = abs(data)./std(data);
 
+%%
+% Get the labels
+%%
 dataLabels = kmeans(data,k);
 
 %%
-%The data is not labelled in any particular way. Here we evaluate the 
-%mean of each cluster so we can order the data from smallest mean 
-%value to the largest mean value
+% The data is not labelled in any particular way. Here we evaluate the 
+% mean of each cluster so we can order the data from smallest mean 
+% value to the largest mean value
 %%
 meanK = zeros(k,1);
 maxK  = zeros(k,1);
@@ -84,7 +87,8 @@ if(maxKSorted(2,1) >= onsetStandardDeviationThreshold)
         if( dataLabels(i-1,1)==2 && dataLabels(i,1)==1 && ...
                 idxStart ~= 0)
             idxEnd=i;
-            if(max(data(idxStart:idxEnd,1)) >= onsetStandardDeviationThreshold )
+            if(max(data(idxStart:idxEnd,1)) >= ...
+                    onsetStandardDeviationThreshold )
                 indexOnset=[indexOnset;idxStart,idxEnd];
             end
             idxStart=0;
