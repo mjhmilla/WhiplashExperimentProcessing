@@ -31,11 +31,11 @@ addpath('inputOutput/');
 %For a simple example here I'll manually set the folder that we 
 %are going to process. For the real script these folders will
 %be processed one-by-one
-mvcFolder = ['../data/00_raw/mvc/biopac/02May2022_Monday/',...
-               '2022_05_02_Subject1_0830'];
+%mvcFolder = ['../data/00_raw/mvc/biopac/02May2022_Monday/',...
+%               '2022_05_02_Subject1_0830'];
 
 carBiopacFolder = ['../data/00_raw/car/biopac/02May2022_Monday/',...
-               'Proband1_2022_05_02'];
+               'Proband4_2022_05_02'];
 
 %%
 % Biopac information
@@ -157,19 +157,18 @@ filesCarBiopacFolder = dir();
 cd(codeFolder);
 
 %Go and find the first *.mat file 
-indexMatFile = 0;
+indexMatFile = [];
 for indexFile=1:1:length(filesCarBiopacFolder)
-    if(contains(filesCarBiopacFolder(indexFile).name,'.mat') ...
-            && indexMatFile==0)
-        indexMatFile = indexFile;
+    if(contains(filesCarBiopacFolder(indexFile).name,'.mat'))
+        indexMatFile = [indexMatFile;indexFile];
     end
 end
 
-
-fprintf('Loading: \t%s\n',filesCarBiopacFolder(indexMatFile).name);
-carBiopacDataRaw = load([filesCarBiopacFolder(indexMatFile).folder,...
+idx=10;
+fprintf('Loading: \t%s\n',filesCarBiopacFolder(indexMatFile(idx,1)).name);
+carBiopacDataRaw = load([filesCarBiopacFolder(indexMatFile(idx,1)).folder,...
                      slashChar,...
-                      filesCarBiopacFolder(indexMatFile).name]);
+                      filesCarBiopacFolder(indexMatFile(idx,1)).name]);
 
 %Keep the original raw file on hand for plotting
 carBiopacData=carBiopacDataRaw;

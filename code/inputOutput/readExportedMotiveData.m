@@ -2,8 +2,9 @@ function [columnData,header] = readExportedMotiveData(csvFileName)
 
 fid = fopen(csvFileName);
 
+numberOfHeaderLines = 0;
 line = fgetl(fid);
-
+numberOfHeaderLines=numberOfHeaderLines+1;
 %%
 % Read in the trial header
 %%
@@ -39,6 +40,8 @@ end
 
 
 line=fgetl(fid);
+numberOfHeaderLines=numberOfHeaderLines+1;
+
 assert(isempty(line)==1);
 
 %%
@@ -46,6 +49,8 @@ assert(isempty(line)==1);
 %%
 
 line = fgetl(fid);
+numberOfHeaderLines=numberOfHeaderLines+1;
+
 rowData = getRowData(line,',');
 columnData(length(rowData)) = ...
     struct('Type','','Name','','ID','',...
@@ -56,6 +61,8 @@ colHeaderFields = {'Type','Name','ID'};
 for indexFields=1:1:length(colHeaderFields)
     if(indexFields > 1)
         line = fgetl(fid);
+        numberOfHeaderLines=numberOfHeaderLines+1;
+
         rowData = getRowData(line,',');
     end
     assert(contains(rowData{1,2},colHeaderFields{indexFields}));
@@ -67,6 +74,8 @@ end
 
 %Measure
 line = fgetl(fid);
+numberOfHeaderLines=numberOfHeaderLines+1;
+
 rowData = getRowData(line,',');
 assert(length(rowData)==length(columnData));
 for indexColumn=1:1:length(rowData)
@@ -75,6 +84,8 @@ end
 
 %Coordinate
 line = fgetl(fid);
+numberOfHeaderLines=numberOfHeaderLines+1;
+
 rowData = getRowData(line,',');
 assert(length(rowData)==length(columnData));
 for indexColumn=1:1:length(rowData)
@@ -82,23 +93,37 @@ for indexColumn=1:1:length(rowData)
 end
 
 %Data
-nDataRow=0;
-while(ischar(line))
-    line = fgetl(fid);
-    nDataRow=nDataRow+1;
-    if(ischar(line))        
-        rowData = getRowData(line,',');
-        assert(length(rowData)==length(columnData));
-        for indexColumn=1:1:length(rowData)
-            entry = rowData{1,indexColumn};
-            if(isempty(entry))
-                entry=nan;
-            end
-            columnData(indexColumn).data = ...
-                [columnData(indexColumn).data; entry];
-        end
-    end
+
+fclose(fid);
+
+data = readmatrix(csvFileName,"FileType","text","Delimiter",",",...
+        "NumHeaderLines",numberOfHeaderLines);
+
+assert(length(columnData)==size(data,2));
+
+
+
+for indexColumn=1:1:length(columnData)
+    columnData(indexColumn).data = data(:,indexColumn);
 end
+
+% nDataRow=0;
+% while(ischar(line))
+%     line = fgetl(fid);
+%     nDataRow=nDataRow+1;
+%     if(ischar(line))        
+%         rowData = getRowData(line,',');
+%         assert(length(rowData)==length(columnData));
+%         for indexColumn=1:1:length(rowData)
+%             entry = rowData{1,indexColumn};
+%             if(isempty(entry))
+%                 entry=nan;
+%             end
+%             columnData(indexColumn).data = ...
+%                 [columnData(indexColumn).data; entry];
+%         end
+%     end
+% end
 
 
 

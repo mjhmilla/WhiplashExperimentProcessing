@@ -16,6 +16,7 @@ rigidBodyData(length(bodyNames)) ...
 %Count the number of markers each body has, save the marker name and the 
 %name of its parent
 nMarkers = 0;
+
 for indexBody=1:1:length(bodyNames)
     %Copy the kinematic information of each body over
     flag_found=0;
@@ -26,31 +27,31 @@ for indexBody=1:1:length(bodyNames)
              && strcmp(motiveColData(indexColumn).Measure,'Rotation') ...
              && strcmp(motiveColData(indexColumn).Coordinate,'X') )
 
-            rigidBodyData(indexColumn).xyzw(:,1) = ...
+            rigidBodyData(indexBody).xyzw(:,1) = ...
                 motiveColData(indexColumn).data;            
             indexColumn=indexColumn+1;
 
-            rigidBodyData(indexColumn).xyzw(:,2) = ...
+            rigidBodyData(indexBody).xyzw(:,2) = ...
                 motiveColData(indexColumn).data;            
             indexColumn=indexColumn+1;
 
-            rigidBodyData(indexColumn).xyzw(:,3) = ...
+            rigidBodyData(indexBody).xyzw(:,3) = ...
                 motiveColData(indexColumn).data;            
             indexColumn=indexColumn+1;
 
-            rigidBodyData(indexColumn).xyzw(:,4) = ...
+            rigidBodyData(indexBody).xyzw(:,4) = ...
                 motiveColData(indexColumn).data;            
             indexColumn=indexColumn+1;
 
-            rigidBodyData(indexColumn).r0B0(:,1) = ...
+            rigidBodyData(indexBody).r0B0(:,1) = ...
                 motiveColData(indexColumn).data;            
             indexColumn=indexColumn+1;
 
-            rigidBodyData(indexColumn).r0B0(:,2) = ...
+            rigidBodyData(indexBody).r0B0(:,2) = ...
                 motiveColData(indexColumn).data;            
             indexColumn=indexColumn+1;
 
-            rigidBodyData(indexColumn).r0B0(:,3) = ...
+            rigidBodyData(indexBody).r0B0(:,3) = ...
                 motiveColData(indexColumn).data;            
             indexColumn=indexColumn+1;
 
@@ -116,6 +117,7 @@ for indexBody = 1:1:length(rigidBodyData)
         rigidBodyMarkerData(indexMarker).markerName = ...
             rigidBodyData(indexBody).markerNames{indexBodyMarker};
 
+        %Find a frame for the rigid body that has a low marker error
         indexColumn=1;
         flag_found=0;
         while indexColumn < length(motiveColData) && flag_found==0
@@ -131,11 +133,13 @@ for indexBody = 1:1:length(rigidBodyData)
 
         [lowMarkerError, lowErrorFrame] = ...
             min(motiveColData(indexColumn).data(:,1));
-        indexColumn = indexColumn-7;
 
+
+        %Retreive the position and orientation of the rigid body
+        indexColumn = indexColumn-7;
         assert(strcmp(motiveColData(indexColumn).Name,...
             rigidBodyData(indexBody).bodyName));
-        assert(strcmp(motiveColData(indexColumn).Measure,'Position'));
+        assert(strcmp(motiveColData(indexColumn).Measure,'Rotation'));
         assert(strcmp(motiveColData(indexColumn).Coordinate,'X'));
         
         rx = motiveColData(indexColumn).data(lowErrorFrame,1);
@@ -157,6 +161,7 @@ for indexBody = 1:1:length(rigidBodyData)
         r0B  = convertQuaternionToRotationMatrix(w,rx,ry,rz);
 
 
+        %Go the the column for the current body-fixed marker
         indexColumn=1;
         flag_found=0;
         while indexColumn < length(motiveColData) && flag_found==0
@@ -175,6 +180,8 @@ for indexBody = 1:1:length(rigidBodyData)
             end
         end        
 
+        %Extract the position of the marker in the inertial frame (0)
+        %in the coordinates of the inerital frame
         r0M0 = zeros(3,1);
         r0M0(1,1) = motiveColData(indexColumn).data(lowErrorFrame,1); 
         rigidBodyMarkerData(indexMarker).r0M0(:,1) = ...
@@ -194,6 +201,8 @@ for indexBody = 1:1:length(rigidBodyData)
                         rigidBodyMarkerData(indexMarker).markerName));
         assert(strcmp(motiveColData(indexColumn).Coordinate,'Z'));
 
+        %Evaluate the local transformation from the rigid body to the
+        %marker in the coordinates of the rigid body
         rBMB = r0B'*(r0M0-r0B0);
 
         rigidBodyMarkerData(indexMarker).rBMB=rBMB;
@@ -201,6 +210,25 @@ for indexBody = 1:1:length(rigidBodyData)
          
     end
 end
+
+%Find the gaps in the rigid-body data and interpolate 
+for indexBody = 1:1:length(rigidBodyData)
+
+    r0B0Gaps = getGapIntervals(rigidBodyData(indexBody).r0B0);
+    xyzwGaps = getGapIntervals(rigidBodyData(indexBody).xyzw);
+
+    %Linearly interpolate the gaps
+    if(size(r0B0Gaps,1) > 0)
+
+    end
+    if(size(xyzwGaps,1) > 0)
+
+    end
+
+end
+
+%Find the marker gaps, use the rigid body model to fill the gaps
+
 
 
 

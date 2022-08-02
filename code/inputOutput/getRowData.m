@@ -1,9 +1,9 @@
 function rowData = getRowData(line,delimiter)
 
 
-dlmLocation=strfind(line,delimiter);
+dlmLocation=[strfind(line,delimiter),length(line)];
 indexComma=1;
-rowData = cell(1,length(dlmLocation)-1);
+rowData = cell(1,length(dlmLocation));
 
 indexCell=1;
 while indexComma<length(dlmLocation)

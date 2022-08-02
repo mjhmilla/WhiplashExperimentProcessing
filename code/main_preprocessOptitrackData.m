@@ -4,21 +4,40 @@ clear all;
 
 flag_plotMarkerData=1;
 
-rootDir  = '/home/mmillard/work/code/stuttgart/FKFS/WhiplashExperimentProcessing/code/';
-cd(rootDir);
-addpath(rootDir);
+% / : linux
+% \ : windows
+slashChar = '/';
 
-bodyNames = {'head','torso'};
+%%
+%Check that we're in the correct directory
+%%
+cd('/home/mjhmilla/dev/projectsBig/stuttgart/FKFS/WhiplashExperimentProcessing/code');
+localPath = pwd();
+idxSlash = strfind(localPath,slashChar);
+parentFolder      = localPath(1,idxSlash(end):end);
+grandParentFolder = localPath(1,idxSlash(end-1):idxSlash(end));
+assert(contains(parentFolder,'code'));
+assert(contains(grandParentFolder,'WhiplashExperimentProcessing'));
 
-dataDir = '../data/01_preprocessing/car/optitrack/';
-dayFoldersToProcess = {'02May2022_Monday'};
+codeFolder=localPath;
 
+
+%%
+% Folders
+%%
+addpath('algorithms/');
+addpath('inputOutput/');
+addpath(codeFolder);
+
+
+bodyNames           = {'head','torso'};
+dataDir             = '../data/01_preprocessing/car/optitrack/';
 
 cd(dataDir);
 dayFolders = dir();
 
 for indexDay = 3:1:length(dayFolders)
-    cd(rootDir);
+    cd(codeFolder);
     cd(dataDir);
     cd(dayFolders(indexDay).name);
     subjectFolders = dir();
@@ -31,6 +50,7 @@ for indexDay = 3:1:length(dayFolders)
         for indexFile=3:1:length(dataFiles)
             if(contains(dataFiles(indexFile).name,'.csv')==1 ...
                     && contains(dataFiles(indexFile).name,'lock')==0)
+
                [motiveColData,motiveHeader] = ...
                    readExportedMotiveData(dataFiles(indexFile).name);
                
