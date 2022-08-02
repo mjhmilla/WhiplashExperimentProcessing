@@ -2,17 +2,31 @@ clc;
 close all;
 clear all;
 
-%%
-% Folders
-%%
+
 
 % / : linux
 % \ : windows
 slashChar = '/';
 
-% Set this to the full path of the code directory
-codeFolder = ['/home/mmillard/work/code/stuttgart/',...
-              'FKFS/WhiplashExperimentProcessing/code'];
+%%
+%Check that we're in the correct directory
+%%
+localPath = pwd();
+idxSlash = strfind(localPath,slashChar);
+parentFolder      = localPath(1,idxSlash(end):end);
+grandParentFolder = localPath(1,idxSlash(end-1):idxSlash(end));
+assert(contains(parentFolder,'code'));
+assert(contains(grandParentFolder,'WhiplashExperimentProcessing'));
+
+codeFolder=localPath;
+
+
+%%
+% Folders
+%%
+addpath('algorithms/');
+addpath('inputOutput/');
+
 
 %For a simple example here I'll manually set the folder that we 
 %are going to process. For the real script these folders will
@@ -29,24 +43,34 @@ carBiopacFolder = ['../data/00_raw/car/biopac/02May2022_Monday/',...
 carBiopacSampleFrequency =2000; %Hz
 emgKeyword      = 'EMG100C';
 ecgKeyword      = 'ECG';
-acc1Keyword     = 'TSD109C';
-acc2Keyword     = 'TSD109C2';
+accCarKeyword   = '- TSD109C -';
+accHeadKeyword  = '- TSD109C2 / TSD109C3 -';
 triggerKeyword  = 'Trigger';
 loadcellKeyword = 'loadcell';
 forceKeyword    = 'Force';
+
+
+%%
+% Biopac data to use for onset detection:
+%%
+
+flag_EMGProcessing =1;
+%0: raw
+%1: EMG: ECG signal reduced
+%2: EMG: ECG signal removed + envelope calculated
+
+flag_AccProcessing =0;
+%0: raw
+%1: Acceleration signal zero-phase low-pass filtered.
 
 %%
 %Ecg removal settings
 %%
 
-flag_ecgRemovalAlgorithm = 0;
-% 0: Window & filter 
-% 1: LSQ and subtract (not yet implemented)
-
+%Parameters for Norman's special ECG removal algorithm: 
+% window & highpass filter
 ecgRemovalFilterWindowParams = struct('windowDuration',0.16,...
                                       'highpassFilterFrequency',20);
-%Hof AL. A simple method to remove ECG artifacts from trunk muscle 
-%MG signals. Journal of Electromyography and Kinesiology. 2009;6(19):e554-5.
 
 %%
 % Accelerometer processing
@@ -56,14 +80,50 @@ accelerometerLowpassFilterFrequency = 10;
 %%
 %EMG processing
 %%
-emgEnvelopeLowpassFilterFrequency   = 5;
+emgEnvelopeLowpassFilterFrequency   = 10;
 
 onsetKmeansParameters = struct('numberOfClusters',2,... 
                                'standardDeviationThreshold', 3);
 
-lowerPercentileThreshold = 0.975;
-upperThresholdScaling    = 0.5; %
+%See the documentation for findOnsetUsingAdaptiveThreshold for details
+peakMiddleThresholdPercentile     = 0.975;
+peakMaximumThresholdScalingEMG    = 1;
+peakMaximumThresholdScalingAcc    = 1;
+peakBaseThresholdScaling          = 0.1;
 
+minimumSamplesBetweenIntervals = round(0.050*carBiopacSampleFrequency);
+
+
+switch flag_EMGProcessing
+    case 0
+        peakMaximumThresholdScalingEMG    = 5.0;
+    case 1
+        peakMaximumThresholdScalingEMG    = 3.5;
+    case 2
+        peakMaximumThresholdScalingEMG    = 1.0;
+end 
+
+switch flag_AccProcessing
+    case 0
+        peakMaximumThresholdScalingAcc    = 0.5;
+    case 1
+        peakMaximumThresholdScalingAcc    = 0.5;
+    case 2
+        peakMaximumThresholdScalingAcc    = 0.5;
+end 
+
+
+%%
+% Onset settings
+%%
+minimumAcceptableOnsetTime = -0.5;
+%Here a negative value means that the EMG signal started before the
+%acceleration. This could happen if somehow the person was aware the
+%acceleration was about to happen and tensed in preparation.
+
+maximumAcceptableOnsetTime =  1.0;
+%Here we pick a generous window following the acceleration onset in which
+%we allow EMG signal onsets to be included.
 
 %%
 %Plotting configuration
@@ -86,19 +146,12 @@ plotVertMarginCm     = 1.5;
                           plotVertMarginCm);
 
 
-%%
-%Check that we're in the correct directory
-%%
-localPath = pwd();
-idxSlash = strfind(localPath,slashChar);
-parentFolder      = localPath(1,idxSlash(end):end);
-grandParentFolder = localPath(1,idxSlash(end-1):idxSlash(end));
-assert(contains(parentFolder,'code'));
-assert(contains(grandParentFolder,'WhiplashExperimentProcessing'));
 
 %%
-%Go to the car-biopac-folder 
+% Process the data
 %%
+
+%Go to the car-biopac-folder 
 cd(carBiopacFolder);
 filesCarBiopacFolder = dir();
 cd(codeFolder);
@@ -114,12 +167,19 @@ end
 
 
 fprintf('Loading: \t%s\n',filesCarBiopacFolder(indexMatFile).name);
-carBiopacData = load([filesCarBiopacFolder(indexMatFile).folder,...
+carBiopacDataRaw = load([filesCarBiopacFolder(indexMatFile).folder,...
                      slashChar,...
                       filesCarBiopacFolder(indexMatFile).name]);
+
+%Keep the original raw file on hand for plotting
+carBiopacData=carBiopacDataRaw;
+timeV = [];
+dt=(1/carBiopacSampleFrequency);
+duration = (size(carBiopacData.data,1)/carBiopacSampleFrequency);
+timeV = [dt:dt:duration]';
+
+
 fprintf('  Channel labels:\n');
-
-
 for i=1:1:size(carBiopacData.labels,1)
     fprintf('  %i.\t%s\n',i,carBiopacData.labels(i,:));  
 end
@@ -132,129 +192,270 @@ assert(carBiopacData.isi == 0.5);
 %%
 % Remove the ECG waveforms from the EMG data
 %%
-carBiopacDataA = removeEcgFromEmg(carBiopacData, emgKeyword, ecgKeyword,...
-    ecgRemovalFilterWindowParams, ...
-    carBiopacSampleFrequency,flag_ecgRemovalAlgorithm);
+if(flag_EMGProcessing >= 1)
+    carBiopacData = removeEcgFromEmg(carBiopacData, emgKeyword, ecgKeyword,...
+        ecgRemovalFilterWindowParams, ...
+        carBiopacSampleFrequency);
+end
 
 %%
 % Calculate the EMG envelope
 %%
-carBiopacDataB = calcEmgEnvelope(carBiopacDataA,emgKeyword, ...
-    emgEnvelopeLowpassFilterFrequency, carBiopacSampleFrequency);
+if(flag_EMGProcessing >= 2)
+    carBiopacData = calcEmgEnvelope(carBiopacData,emgKeyword, ...
+        emgEnvelopeLowpassFilterFrequency, carBiopacSampleFrequency);
+end
 
 %%
 % Smooth the accelerometer data
 %%
-carBiopacDataC = smoothAccelerations(carBiopacDataB,acc1Keyword,...
-    accelerometerLowpassFilterFrequency,carBiopacSampleFrequency);
 
-carBiopacDataC = smoothAccelerations(carBiopacDataC,acc2Keyword,...
-    accelerometerLowpassFilterFrequency,carBiopacSampleFrequency);
+if(flag_AccProcessing >= 1)
+    carBiopacData = smoothAccelerations(carBiopacData,accCarKeyword,...
+        accelerometerLowpassFilterFrequency,carBiopacSampleFrequency);
+    
+    carBiopacData = smoothAccelerations(carBiopacData,accHeadKeyword,...
+        accelerometerLowpassFilterFrequency,carBiopacSampleFrequency);
+
+end
+
 
 %%
 % Identify the signal onset
 %%
 
-carBiopacSignal = carBiopacDataC;
+numberOfSignals = size(carBiopacData.data,2);
+carBiopacDataPeakIntervals(numberOfSignals) ...
+    = struct('intervals',[],'middleThresholds',[],'maximumThresholds',[]);
 
 
-idxSubplot=1;
+indexSubplot=1;
 flag_plotOnset =1;
-timeV = [];
 if(flag_plotOnset==1)
-    dt=(1/carBiopacSampleFrequency);
-    duration = (size(carBiopacSignal.data,1)/carBiopacSampleFrequency);
-    timeV = [dt:dt:duration]';
     figOnset = figure;
 end
 
-for i=1:1:size(carBiopacSignal.labels,1)
-    if(contains(carBiopacSignal.labels(i,:),emgKeyword) ...
-            || contains(carBiopacSignal.labels(i,:),acc1Keyword)...
-            || contains(carBiopacSignal.labels(i,:),acc2Keyword))
+flag_accHead = 0;
+flag_accCar = 0;
+
+
+for i=1:1:size(carBiopacData.labels,1)
+    if(contains(carBiopacData.labels(i,:),emgKeyword) ...
+            || contains(carBiopacData.labels(i,:),accCarKeyword)...
+            || contains(carBiopacData.labels(i,:),accHeadKeyword))
         
 
+        flag_plotOnsetDetails = 0;
 
-        [peakIntervals, thresholdLower, thresholdUpper] = ...
-            findOnsetUsingAdaptiveThreshold(carBiopacSignal.data(:,i), ...
-                                    lowerPercentileThreshold,...
-                                    upperThresholdScaling);
 
-%         if(    contains(carBiopacSignal.labels(i,:),acc1Keyword)...
-%             || contains(carBiopacSignal.labels(i,:),acc2Keyword) )
-% 
-%            [peakIntervalsNeg, thresholdLowerNeg, thresholdUpperNeg] = ...
-%                     findOnsetUsingAdaptiveThreshold(-carBiopacSignal.data(:,i), ...
-%                                             lowerPercentileThreshold,...
-%                                             upperThresholdScaling);
-% 
-%             peakIntervals = [peakIntervals;peakIntervalsNeg];
-%             
-%         end
+        %Identify signal onset times from the norm of the acceleration
+        if(   (contains(carBiopacData.labels(i,:),accCarKeyword)...
+                && flag_accCar==0) ...
+           || (contains(carBiopacData.labels(i,:),accHeadKeyword)...
+                && flag_accHead==0) )                       
 
-        if(flag_plotOnset==1 && idxSubplot<=(maxPlotCols*maxPlotRows))
-            figure(figOnset);
-            row = ceil(idxSubplot/maxPlotCols);
-            col = max(1,idxSubplot-(row-1)*maxPlotCols);
-            if(col > 3)
-                here=1;
+            accX = carBiopacData.data(:,i);
+            accX = accX-median(accX);
+            accY = carBiopacData.data(:,i+1);
+            accY = accY-median(accY);
+            accZ = carBiopacData.data(:,i+2);
+            accZ = accZ-median(accZ);
+            accNorm = (accX.^2+accY.^2+accZ.^2).^0.5;
+
+            [peakIntervals,...
+                peakMiddleThresholds,...
+                peakMaximumThresholds] = ...
+                findOnsetUsingAdaptiveThreshold(accNorm, ...
+                                        peakMiddleThresholdPercentile,...
+                                        peakMaximumThresholdScalingAcc,...
+                                        peakBaseThresholdScaling,...
+                                        minimumSamplesBetweenIntervals,...
+                                        flag_plotOnsetDetails);
+
+            for j=i:1:(i+2)
+                carBiopacDataPeakIntervals(j).intervals   = ...
+                    peakIntervals;
+                carBiopacDataPeakIntervals(j).middleThresholds = ...
+                    peakMiddleThresholds;
+                carBiopacDataPeakIntervals(j).maximumThresholds = ...
+                    peakMaximumThresholds;
             end
-            subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
 
-
-            minVal = min(carBiopacSignal.data(:,i));
-            maxVal = max(carBiopacSignal.data(:,i));
-            timeMin = min(timeV);
-            timeMax = max(timeV);
-
-            fill([timeMin;timeMax;timeMax;timeMin;timeMin],...
-                 [minVal;minVal;thresholdLower;thresholdLower;minVal],[1,1,1].*0.75,...
-                 'EdgeColor','none');
-            hold on;
-
-            plot([timeMin;timeMax],[1;1].*thresholdUpper,'--','Color',[0,0,0]);
-            hold on;            
-            
-            plot(timeV, carBiopacSignal.data(:,i),'Color',[0,0,0]);
-            hold on;            
-            
-            for k=1:1:size(peakIntervals,1)   
-                i1 = peakIntervals(k,1);
-                i2 = peakIntervals(k,2);
-                t0 = timeV(i1,1);
-                t1 = timeV(i2,1);     
-                v1 = carBiopacSignal.data(i1,i);
-                vMax = max(carBiopacSignal.data(i1:i2,i));
-                v2 = carBiopacSignal.data(i2,i);
-
-                plot([t0;t1;t1;t0;t0],[v1;v2;vMax;vMax;v1],'Color',[1,0,0]);
-                hold on;
-                tt = t0-(t1-t0)*0.05;
-                vt = v1;
-                plot(tt,vt,'o','Color',[1,0,0]);                
-                hold on;
-                text(tt,vt,sprintf('%1.3f',t0),...
-                    'VerticalAlignment','bottom',...
-                    'HorizontalAlignment','right');
-                hold on;
-                %axis tight;
+            dataLabel='';
+            if(contains(carBiopacData.labels(i,:),accHeadKeyword))
+                flag_accHead=1;
+                dataLabel = 'Accelerometer: Head';
             end
-            xlabel('Time (s)');
-            ylabel('Value');
-            title(replaceCharacter(carBiopacSignal.labels(i,:),'_',' '));
-            box off;
+            if(contains(carBiopacData.labels(i,:),accCarKeyword))
+                flag_accCar = 1;
+                dataLabel = 'Accelerometer: Car';
+            end
+
+            if(flag_plotOnset)
+                [figOnset,indexSubplot] = ...
+                    addOnsetPlot(timeV, accNorm,...
+                            carBiopacDataPeakIntervals(i),...
+                            dataLabel,...
+                            figOnset, subPlotPanel, indexSubplot);
+            end
+
         end
-        idxSubplot=idxSubplot+1;
+
+        %Indentify signal onset times for the individual signal        
+        if(contains(carBiopacData.labels(i,:),emgKeyword))
+
+            [peakIntervals, ...
+                peakMiddleThresholds, ...
+                peakMaximumThresholds] = ...
+                findOnsetUsingAdaptiveThreshold(carBiopacData.data(:,i), ...
+                                        peakMiddleThresholdPercentile,...
+                                        peakMaximumThresholdScalingEMG,...
+                                        peakBaseThresholdScaling,...
+                                        minimumSamplesBetweenIntervals,...
+                                        flag_plotOnsetDetails);
+
+
+            carBiopacDataPeakIntervals(i).intervals   = ...
+                peakIntervals;
+            carBiopacDataPeakIntervals(i).middleThresholds = ...
+                peakMiddleThresholds;
+            carBiopacDataPeakIntervals(i).maximumThresholds = ...
+                peakMaximumThresholds;
+
+            if(flag_plotOnset)
+                dataLabel = carBiopacData.labels(i,:);
+                dataLabel = dataLabel(1,1:max(30,length(dataLabel)));
+
+                [figOnset,indexSubplot] = ...
+                    addOnsetPlot(timeV, carBiopacData.data(:,i),...
+                            carBiopacDataPeakIntervals(i),...
+                            dataLabel,...
+                            figOnset, subPlotPanel, indexSubplot);
+
+            end
+        end
+
+        
 
     end
+
 end
 
 
-figOnset = configPlotExporter( figOnset,...
-                                pageWidthCm,...
-                                pageHeightCm);
+%%
+% Calculate delay times between each EMG channel & the head/car
+% acceleration onset. Store the result in a table and write the table
+% to a csv file
+%%
 
-print('-dpdf', '../output/fig_Onset.pdf');
+indexHeadAcc = 0;
+indexCarAcc  = 0;
+
+onsetData = [{'EMG_Ch_Name'},...
+             {'OnsetDelay_CarAcc_ms'},...
+             {'OnsetDelay_HeadAcc_ms'}];
+
+%Go get the indices of the head and car accelerometers
+for i=1:1:size(carBiopacData.labels,1)
+    if(contains(carBiopacData.labels(i,:),accCarKeyword))
+        indexCarAcc=i;
+    end
+    if(contains(carBiopacData.labels(i,:),accHeadKeyword))
+        indexHeadAcc=i;
+    end    
+end
+
+carAccOnsetTime = ...
+    timeV(carBiopacDataPeakIntervals(indexCarAcc).intervals(1,1),1);
+headAccOnsetTime = ...
+    timeV(carBiopacDataPeakIntervals(indexHeadAcc).intervals(1,1),1);
+
+%Go and calculate the difference in onset time.
+for i=1:1:size(carBiopacData.labels,1)
+    if(contains(carBiopacData.labels(i,:),emgKeyword))
+        flag_onsetTimeFound=0;
+        j = 1;
+
+        if(size(carBiopacDataPeakIntervals(i).intervals,1) >= 1)
+            while(j <=  size(carBiopacDataPeakIntervals(i).intervals,1)...
+                    && flag_onsetTimeFound==0)
+                %If there is more than one onset that is within the bounds
+                %then we accept the first one
+                emgOnsetTime=...
+                    timeV(carBiopacDataPeakIntervals(i).intervals(j,1),1);
+                emgCarTime = emgOnsetTime-carAccOnsetTime;
+                emgHeadTime = emgOnsetTime-headAccOnsetTime;            
+                if(  emgCarTime >= minimumAcceptableOnsetTime ...
+                        && emgCarTime <= maximumAcceptableOnsetTime ...
+                        && emgHeadTime >= minimumAcceptableOnsetTime ...
+                        && emgHeadTime <= maximumAcceptableOnsetTime ...
+                        && flag_onsetTimeFound == 0)
+    
+                    emgLabel = carBiopacData.labels(i,:);
+                    %These labels contain some characters that look like
+                    %spaces, but are not. Strip them out
+                    labelKeep = [];
+                    for m=1:1:length(emgLabel)
+                        mNum = str2double(emgLabel(1,m));
+                        mIsNumber=0;
+                        if(isempty(mNum)==0 && isnan(mNum)==0)
+                            mIsNumber=1;
+                        end
+                        if( mIsNumber ...
+                                || isletter(emgLabel(1,m))...
+                                || isspace(emgLabel(1,m))...
+                                || emgLabel(1,m)=='-')
+                            labelKeep=[labelKeep,m];
+                        end
+                    end
+                    emgLabel = emgLabel(1,labelKeep);
+                    emgLabel = strtrim(emgLabel);
+                    emgLabel = replaceCharacter(emgLabel,' ','_');
+                    onsetData = [onsetData;...
+                        {emgLabel},...
+                            {sprintf('%1.3f',emgCarTime*1000)},...
+                            {sprintf('%1.3f',emgHeadTime*1000)}];
+    
+                    flag_onsetTimeFound=1;
+                end
+                j=j+1;
+            end
+        end
+    end
+end
+
+fileNameOnset = sprintf('../output/table_Onset_EMG%i_Acc%i.csv',...
+                            flag_EMGProcessing,flag_AccProcessing);
+
+fid = fopen(fileNameOnset,'w');
+
+fprintf('\n\nOnset Times\n');
+for i=1:1:size(onsetData,1)
+    for j=1:1:size(onsetData,2)
+        %print to file
+        fprintf(fid,'%s,',onsetData{i,j});        
+        %print to screen
+        if(j <= 1 || i==1)
+            fprintf('%s\t',onsetData{i,j});        
+        else
+            fprintf('%s\t\t\t',onsetData{i,j});
+        end
+    end
+    fprintf(fid,'\n');
+    fprintf('\n');
+
+end
+fclose(fid);
+
+if(flag_plotOnset==1)
+
+    figOnset = configPlotExporter( figOnset,...
+                                    pageWidthCm,...
+                                    pageHeightCm);
+    print('-dpdf', sprintf('../output/fig_Onset_EMG%i_Acc%i.pdf',...
+                    flag_EMGProcessing,flag_AccProcessing));
+
+end
 
 here=1;
 
