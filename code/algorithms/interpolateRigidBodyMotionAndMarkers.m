@@ -1,4 +1,4 @@
-function [timeFrameData, rigidBodyData, rigidBodyMarkerData] ...
+function [frameTimeData, rigidBodyData, rigidBodyMarkerData] ...
     = interpolateRigidBodyMotionAndMarkers(...
             motiveColData,motiveHeader,bodyNames)
 
@@ -6,7 +6,10 @@ function [timeFrameData, rigidBodyData, rigidBodyMarkerData] ...
 n = motiveHeader.Total_Frames_in_Take;
 assert(contains(motiveHeader.Rotation_Type,'Quaternion'));
 
-timeFrameData = zeros(n,2);
+frameTimeData = zeros(n,2);
+frameTimeData(:,1) = [1:1:n]';
+dt =1/motiveHeader.Capture_Frame_Rate;
+frameTimeData(:,2) = [dt:dt:(n*dt)]';
 
 
 rigidBodyData(length(bodyNames)) ...
@@ -349,23 +352,22 @@ for indexMarker=1:1:length(rigidBodyMarkerData)
             indexEnd   = r0M0Gaps(indexGap,2)+1;
             %Only attempt to interpolate gaps that have data at the 
             %beginning and end
-            if(indexStart > 0 ...
-               && indexEnd < size(rigidBodyMarkerData(indexMarker).r0M0,1))
-                %Linearly interpolate the gap
-                indexParent = ...
-                    rigidBodyMarkerData(indexMarker).parentIndex;
-                rBMB = rigidBodyMarkerData(indexMarker).rBMB';
-                
-                for k = r0M0Gaps(indexGap,1):1:r0M0Gaps(indexGap,2)
-                    r0B0 = rigidBodyData(indexParent).r0B0(k,:)';
-                    xyzw  = rigidBodyData(indexParent).xyzw(k,:);
-                    rm0B = convertQuaternionToRotationMatrix(...
-                        xyzw(1,1),xyzw(1,2),xyzw(1,3),xyzw(1,4));
-                    r0M0 = r0B0 + rm0B'*rBMB;
-                    rigidBodyMarkerData(indexMarker).r0M0(k,:)=r0M0';
-                    rigidBodyMarkerData(indexMarker).interpolated(k,1)=1;
-                end
+
+            %Linearly interpolate the gap
+            indexParent = ...
+                rigidBodyMarkerData(indexMarker).parentIndex;
+            rBMB = rigidBodyMarkerData(indexMarker).rBMB';
+            
+            for k = r0M0Gaps(indexGap,1):1:r0M0Gaps(indexGap,2)
+                r0B0 = rigidBodyData(indexParent).r0B0(k,:)';
+                xyzw  = rigidBodyData(indexParent).xyzw(k,:);
+                rm0B = convertQuaternionToRotationMatrix(...
+                    xyzw(1,1),xyzw(1,2),xyzw(1,3),xyzw(1,4));
+                r0M0 = r0B0 + rm0B'*rBMB;
+                rigidBodyMarkerData(indexMarker).r0M0(k,:)=r0M0';
+                rigidBodyMarkerData(indexMarker).interpolated(k,1)=1;
             end
+            
         end        
     end
 

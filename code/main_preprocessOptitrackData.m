@@ -5,6 +5,7 @@ clear all;
 flag_plotMarkerData=0;
 flag_plotInterpolatedMarkers=0;
 flag_plotInterpolatedRigidBodies=0;
+flag_writeTRCFile=1;
 
 assert( ~(flag_plotInterpolatedMarkers ...
             && flag_plotInterpolatedRigidBodies));
@@ -59,7 +60,7 @@ for indexDay = 3:1:length(dayFolders)
                [motiveColData,motiveHeader] = ...
                    readExportedMotiveData(dataFiles(indexFile).name);
                
-               [timeFrameData, rigidBodyData, rigidBodyMarkerData] ...
+               [frameTimeData, rigidBodyData, rigidBodyMarkerData] ...
                 = interpolateRigidBodyMotionAndMarkers(...
                         motiveColData,motiveHeader,bodyNames);
 
@@ -99,12 +100,23 @@ for indexDay = 3:1:length(dayFolders)
                                 bodyNames,[1,0,0; 0,0,1],figInput);
 
                             figInput=plotRigidBodiesMarkers(frame,...
-                                timeFrameData,rigidBodyData,rigidBodyMarkerData,...
+                                rigidBodyData,rigidBodyMarkerData,...
                                 figInput);
 
                             pause(0.01);
                         end
                     end
+               end
+
+               if(flag_writeTRCFile==1)
+                    pathAndFileName = dataFiles(indexFile).name;
+                    assert(strcmp(pathAndFileName(1,(end-3):end),'.csv'));
+                    pathAndFileName(1,(end-3):end)='.trc';
+                    
+                    success = writeTRCFile(pathAndFileName, ...
+                                frameTimeData, rigidBodyMarkerData,...
+                                motiveHeader);
+                    here=1;
                end
                here=1;
 
