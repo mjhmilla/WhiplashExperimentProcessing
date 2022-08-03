@@ -70,13 +70,17 @@ while(indexColumn < (length(colData)-3))
         %%
         % Form the rotation matrix
         %%
-        rm = convertQuaternionToRotationMatrix(w,rx,ry,rz);
+        xyzw = [rx,ry,rz,w];
+        xyzw = xyzw ./ sqrt(xyzw*(xyzw'));
+
+        rm0B = convertQuaternionToRotationMatrix(...
+            xyzw(1,1),xyzw(1,2),xyzw(1,3),xyzw(1,4));
         %rm=rm';
         xyz = [x;y;z];
         for indexAxis=1:1:3
             naxis=zeros(3,1);
             naxis(indexAxis,1)=0.1;
-            naxis=rm*naxis;
+            naxis=rm0B'*naxis;
             axisColor = [0,0,0];
             axisColor(1,indexAxis)=1;
             plot3([xyz(1,1);xyz(1,1)+naxis(1,1)],...
@@ -164,7 +168,8 @@ while(indexColumn < (length(colData)-3))
         axis square;
         xlabel('X');
         ylabel('Y');
-        zlabel('Z');                                                                           
+        zlabel('Z');       
+        title(sprintf('Raw Motive Data (%i)',frameNumber));
         hold on;
 
         indexColumn=indexColumn+1;

@@ -13,6 +13,7 @@ rigidBodyData(length(bodyNames)) ...
     =struct('r0B0',zeros(n,3),'xyzw',zeros(n,4),'interpolated',zeros(n,1),...
             'bodyName','','markerNames',[]);
 
+
 %Count the number of markers each body has, save the marker name and the 
 %name of its parent
 nMarkers = 0;
@@ -26,6 +27,8 @@ for indexBody=1:1:length(bodyNames)
              && contains(motiveColData(indexColumn).Name,bodyNames{indexBody}) ...
              && strcmp(motiveColData(indexColumn).Measure,'Rotation') ...
              && strcmp(motiveColData(indexColumn).Coordinate,'X') )
+
+            rigidBodyData(indexBody).interpolated=zeros(n,1);
 
             rigidBodyData(indexBody).xyzw(:,1) = ...
                 motiveColData(indexColumn).data;            
@@ -43,6 +46,25 @@ for indexBody=1:1:length(bodyNames)
                 motiveColData(indexColumn).data;            
             indexColumn=indexColumn+1;
 
+            %normalize the quaternions
+            qM = sqrt( rigidBodyData(indexBody).xyzw(:,1).^2 ...
+                     + rigidBodyData(indexBody).xyzw(:,2).^2 ...
+                     + rigidBodyData(indexBody).xyzw(:,3).^2 ...
+                     + rigidBodyData(indexBody).xyzw(:,4).^2);
+
+            rigidBodyData(indexBody).xyzw(:,1) = ...
+                rigidBodyData(indexBody).xyzw(:,1)./qM;
+
+            rigidBodyData(indexBody).xyzw(:,2) = ...
+                rigidBodyData(indexBody).xyzw(:,2)./qM;
+
+            rigidBodyData(indexBody).xyzw(:,3) = ...
+                rigidBodyData(indexBody).xyzw(:,3)./qM;
+
+            rigidBodyData(indexBody).xyzw(:,4) = ...
+                rigidBodyData(indexBody).xyzw(:,4)./qM;
+
+            %Copy over the movement of the rigid body origin
             rigidBodyData(indexBody).r0B0(:,1) = ...
                 motiveColData(indexColumn).data;            
             indexColumn=indexColumn+1;
@@ -60,10 +82,11 @@ for indexBody=1:1:length(bodyNames)
             indexColumn=indexColumn+1;
         end
     end
+    assert(flag_found==1);
     %Copy the information of the body fixed markers over
     flag_found=0;
     indexColumn=1;
-    while indexColumn < length(motiveColData) && flag_found==0
+    while indexColumn < length(motiveColData)
         if( strcmp( motiveColData(indexColumn).Type,'Rigid_Body_Marker') ...
              && contains(motiveColData(indexColumn).Name,bodyNames{indexBody}) ...
              && strcmp(motiveColData(indexColumn).Measure,'Position') ...
@@ -89,22 +112,24 @@ for indexBody=1:1:length(bodyNames)
                 [rigidBodyData(indexBody).markerNames,...
                  {motiveColData(indexColumn).Name(1,(i1+1):i2)}];
 
-            nMarkers = nMarkers+1;
-            
-            flag_found=1;
-        else
-            indexColumn=indexColumn+1;
+            nMarkers = nMarkers+1;            
         end
+        indexColumn=indexColumn+1;
+
     end
+
 end
 
 rigidBodyMarkerData(nMarkers) = ...
     struct('r0M0',zeros(n,3),'parentName','',...
-            'parentIndex',nan,'rBMB',zeros(1,3),'markerName','');
+            'parentIndex',nan,'rBMB',zeros(1,3),'markerName','',...
+            'interpolated',zeros(n,1));
 
+%%
 % Populate the basic information of each marker: its name, the name of the
 % parent body, the id of the parent body, and the position of the marker
 % in the local axis
+%%
 indexMarker=1;
 for indexBody = 1:1:length(rigidBodyData)
     for indexBodyMarker=1:1:length(rigidBodyData(indexBody).markerNames)
@@ -130,6 +155,7 @@ for indexBody = 1:1:length(rigidBodyData)
                 indexColumn=indexColumn+1;
             end
         end
+        assert(flag_found==1);
 
         [lowMarkerError, lowErrorFrame] = ...
             min(motiveColData(indexColumn).data(:,1));
@@ -158,44 +184,46 @@ for indexBody = 1:1:length(rigidBodyData)
         z = motiveColData(indexColumn).data(lowErrorFrame,1);
 
         r0B0 = [x;y;z];
-        r0B  = convertQuaternionToRotationMatrix(w,rx,ry,rz);
-
+        
+        %Normalize the quaternion
+        qM = sqrt(w*w + rx*rx + ry*ry + rz*rz);
+        w = w/qM;
+        rx = rx/qM;
+        ry = ry/qM;
+        rz = rz/qM;
+        rm0B  = convertQuaternionToRotationMatrix(rx,ry,rz,w);
 
         %Go the the column for the current body-fixed marker
         indexColumn=1;
         flag_found=0;
+
         while indexColumn < length(motiveColData) && flag_found==0
-            if(    strcmp(motiveColData(indexColumn).Type,...
-                            'Rigid_Body_Marker') ...
+            if(      strcmp(motiveColData(indexColumn).Type,'Rigid_Body_Marker') ...
                 && contains(motiveColData(indexColumn).Name,...
                             rigidBodyData(indexBody).bodyName)...
                 && contains(motiveColData(indexColumn).Name,...
-                            rigidBodyMarkerData(indexMarker).markerName) ...
-                && strcmp(motiveColData(indexColumn).Measure,'Position') ...
-                && strcmp(motiveColData(indexColumn).Coordinate,'X'))
+                            rigidBodyMarkerData(indexMarker).markerName)...            
+                &&   strcmp(motiveColData(indexColumn).Measure,'Position') ...
+                &&   strcmp(motiveColData(indexColumn).Coordinate,'X'))
 
                 flag_found=1;                
             else
                 indexColumn=indexColumn+1;
             end
-        end        
+        end       
+        assert(flag_found==1);
 
-        %Extract the position of the marker in the inertial frame (0)
-        %in the coordinates of the inerital frame
+
+        %Populate the measured position of the labelled marker
         r0M0 = zeros(3,1);
         r0M0(1,1) = motiveColData(indexColumn).data(lowErrorFrame,1); 
-        rigidBodyMarkerData(indexMarker).r0M0(:,1) = ...
-            motiveColData(indexColumn).data(:,1);
 
         indexColumn=indexColumn+1;        
         r0M0(2,1) = motiveColData(indexColumn).data(lowErrorFrame,1); 
-        rigidBodyMarkerData(indexMarker).r0M0(:,2) = ...
-            motiveColData(indexColumn).data(:,1);
 
-        indexColumn=indexColumn+1;        
+        indexColumn=indexColumn+1;   
         r0M0(3,1) = motiveColData(indexColumn).data(lowErrorFrame,1); 
-        rigidBodyMarkerData(indexMarker).r0M0(:,3) = ...
-            motiveColData(indexColumn).data(:,1);
+        
 
         assert(contains(motiveColData(indexColumn).Name,...
                         rigidBodyMarkerData(indexMarker).markerName));
@@ -203,32 +231,145 @@ for indexBody = 1:1:length(rigidBodyData)
 
         %Evaluate the local transformation from the rigid body to the
         %marker in the coordinates of the rigid body
-        rBMB = r0B'*(r0M0-r0B0);
+        rBMB = rm0B*(r0M0-r0B0);
 
-        rigidBodyMarkerData(indexMarker).rBMB=rBMB;
+        rigidBodyMarkerData(indexMarker).rBMB=rBMB';
 
-         
+        %%
+        %Go the the column for the labelled marker
+        %%
+        indexColumn=1;
+        flag_found=0;
+        nameLabelledMarker = [rigidBodyData(indexBody).bodyName,':',... 
+                              rigidBodyMarkerData(indexMarker).markerName];
+
+        while indexColumn < length(motiveColData) && flag_found==0
+            if(      strcmp(motiveColData(indexColumn).Type,'Marker') ...
+                && contains(motiveColData(indexColumn).Name,nameLabelledMarker)...
+                &&   strcmp(motiveColData(indexColumn).Measure,'Position') ...
+                &&   strcmp(motiveColData(indexColumn).Coordinate,'X'))
+
+                flag_found=1;                
+            else
+                indexColumn=indexColumn+1;
+            end
+        end       
+        assert(flag_found==1);
+
+        rigidBodyMarkerData(indexMarker).r0M0(:,1) = ...
+            motiveColData(indexColumn).data(:,1);
+
+        indexColumn=indexColumn+1;
+        rigidBodyMarkerData(indexMarker).r0M0(:,2) = ...
+            motiveColData(indexColumn).data(:,1);   
+
+        indexColumn=indexColumn+1;         
+        rigidBodyMarkerData(indexMarker).r0M0(:,3) = ...
+            motiveColData(indexColumn).data(:,1);
+
+        rigidBodyMarkerData(indexMarker).interpolated = zeros(n,1);
+
+        indexMarker=indexMarker+1;
     end
 end
 
+%%
 %Find the gaps in the rigid-body data and interpolate 
+%%
 for indexBody = 1:1:length(rigidBodyData)
 
-    r0B0Gaps = getGapIntervals(rigidBodyData(indexBody).r0B0);
-    xyzwGaps = getGapIntervals(rigidBodyData(indexBody).xyzw);
+    r0B0Gaps = getGapIntervals(rigidBodyData(indexBody).r0B0(:,1));
+    xyzwGaps = getGapIntervals(rigidBodyData(indexBody).xyzw(:,1));
 
-    %Linearly interpolate the gaps
-    if(size(r0B0Gaps,1) > 0)
-
+    %Linearly interpolate the position gaps
+    if(isempty(r0B0Gaps) == 0)
+        for indexGap = 1:1:size(r0B0Gaps,1)
+            indexStart = r0B0Gaps(indexGap,1)-1;
+            indexEnd   = r0B0Gaps(indexGap,2)+1;
+            %Only attempt to interpolate gaps that have data at the 
+            %beginning and end
+            if(indexStart > 0 ...
+                    && indexEnd < size(rigidBodyData(indexBody).r0B0,1))
+                %Linearly interpolate the gap
+                r0B0a = rigidBodyData(indexBody).r0B0(indexStart,:);
+                r0B0b = rigidBodyData(indexBody).r0B0(indexEnd,:);
+                
+                for k = r0B0Gaps(indexGap,1):1:r0B0Gaps(indexGap,2)
+                    h =  (k - r0B0Gaps(indexGap,1) ) ...
+                        /(r0B0Gaps(indexGap,2)-r0B0Gaps(indexGap,1));
+                    rigidBodyData(indexBody).r0B0(k,:) = ...
+                        r0B0a.*(1-h) + r0B0b.*(h);
+                    rigidBodyData(indexBody).interpolated(k,1)=1;
+                end
+            end
+        end
     end
-    if(size(xyzwGaps,1) > 0)
 
+    %Linearly interpolate the orientation gaps    
+    if(isempty(xyzwGaps) == 0)
+        for indexGap = 1:1:size(xyzwGaps,1)
+            indexStart = xyzwGaps(indexGap,1)-1;
+            indexEnd   = xyzwGaps(indexGap,2)+1;
+            %Only attempt to interpolate gaps that have data at the 
+            %beginning and end
+            if(indexStart > 0 ...
+                    && indexEnd < size(rigidBodyData(indexBody).xyzw,1))
+                %Linearly interpolate the gap
+                xyzwa = rigidBodyData(indexBody).xyzw(indexStart,:);
+                xyzwb = rigidBodyData(indexBody).xyzw(indexEnd,:);
+                
+                for k = xyzwGaps(indexGap,1):1:xyzwGaps(indexGap,2)
+                    h =  (k - xyzwGaps(indexGap,1) ) ...
+                        /(xyzwGaps(indexGap,2)-xyzwGaps(indexGap,1));
+
+                    %Quaternions can be interpolated
+                    xyzw = xyzwa.*(1-h) + xyzwb.*(h);
+                    %But need to be renormalized
+                    xyzw = xyzw ./ sqrt( xyzw*xyzw' );
+
+                    rigidBodyData(indexBody).xyzw(k,:) = xyzw;
+                    rigidBodyData(indexBody).interpolated(k,1)=1;
+                end
+            end
+        end
     end
 
 end
 
+%%
 %Find the marker gaps, use the rigid body model to fill the gaps
+%%
+for indexMarker=1:1:length(rigidBodyMarkerData)
 
+    r0M0Gaps = getGapIntervals(rigidBodyMarkerData(indexMarker).r0M0(:,1));
+
+    if(isempty(r0M0Gaps) == 0)
+        for indexGap = 1:1:size(r0M0Gaps,1)
+            indexStart = r0M0Gaps(indexGap,1)-1;
+            indexEnd   = r0M0Gaps(indexGap,2)+1;
+            %Only attempt to interpolate gaps that have data at the 
+            %beginning and end
+            if(indexStart > 0 ...
+               && indexEnd < size(rigidBodyMarkerData(indexMarker).r0M0,1))
+                %Linearly interpolate the gap
+                indexParent = ...
+                    rigidBodyMarkerData(indexMarker).parentIndex;
+                rBMB = rigidBodyMarkerData(indexMarker).rBMB';
+                
+                for k = r0M0Gaps(indexGap,1):1:r0M0Gaps(indexGap,2)
+                    r0B0 = rigidBodyData(indexParent).r0B0(k,:)';
+                    xyzw  = rigidBodyData(indexParent).xyzw(k,:);
+                    rm0B = convertQuaternionToRotationMatrix(...
+                        xyzw(1,1),xyzw(1,2),xyzw(1,3),xyzw(1,4));
+                    r0M0 = r0B0 + rm0B'*rBMB;
+                    rigidBodyMarkerData(indexMarker).r0M0(k,:)=r0M0';
+                    rigidBodyMarkerData(indexMarker).interpolated(k,1)=1;
+                end
+            end
+        end        
+    end
+
+end
 
 
 

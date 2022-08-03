@@ -1,6 +1,8 @@
 function gapIntervals = getGapIntervals(data)
 
+
 dataNan=find(isnan(data));
+gapIntervals = [];
 
 if(size(dataNan,1)>0)
     dataNanDiff = diff(dataNan);    

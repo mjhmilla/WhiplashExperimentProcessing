@@ -12,4 +12,5 @@ models/
 *.xlsx
 *.pdf
 *.png
-
+*lock*
+*.asv

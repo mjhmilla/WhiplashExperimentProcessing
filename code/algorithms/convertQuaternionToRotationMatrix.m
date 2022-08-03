@@ -1,10 +1,13 @@
-function rm = convertQuaternionToRotationMatrix(q0,q1,q2,q3)
+function rm = convertQuaternionToRotationMatrix(x,y,z,w)
 
-q02 = q0*q0;
-q12 = q1*q1;
-q22 = q2*q2;
-q32 = q3*q3;
+w2 = w*w;
+x2 = x*x;
+y2 = y*y;
+z2 = z*z;
 
-rm = [(q02+q12-q22-q32),    2*(q1*q2-q0*q3),   2*(q0*q2-q1*q3);...
-        2*(q1*q2+q0*q3),  (q02-q12+q22-q32),   2*(q2*q3-q0*q1);...
-       2*(-q0*q2+q1*q3),    2*(q2*q3+q0*q1), (q02-q12-q22+q32)];
+assert( abs(w2 + x2 + y2 + z2 - 1) < eps*100,...
+        'Error: quaternion norm must be 1 to use this function');
+
+rm = [(1-2*(y2+z2)),    2*(x*y-w*z),   2*(w*y+x*z);...
+        2*(x*y+w*z),  (1-2*(x2+z2)),   2*(y*z-w*x);...
+       2*(-w*y+x*z),    2*(y*z+w*x), (1-2*(x2+y2))]';
