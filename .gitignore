@@ -4,8 +4,6 @@
 *.mat
 *.acq
 *.log
-models/
-!models/Mortensen2018_FKFS2022.osim
 *.cal
 *.jpg
 *.JPG
