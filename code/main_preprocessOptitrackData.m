@@ -6,6 +6,8 @@ flag_plotMarkerData=0;
 flag_plotInterpolatedMarkers=0;
 flag_plotInterpolatedRigidBodies=0;
 flag_writeTRCFile=1;
+unitsLengthTRCFile = 'mm'; %The data is not displayed in the GUI correctly 
+                    % unless its in mm
 
 assert( ~(flag_plotInterpolatedMarkers ...
             && flag_plotInterpolatedRigidBodies));
@@ -115,7 +117,7 @@ for indexDay = 3:1:length(dayFolders)
                     
                     success = writeTRCFile(pathAndFileName, ...
                                 frameTimeData, rigidBodyMarkerData,...
-                                motiveHeader);
+                                motiveHeader, unitsLengthTRCFile);
                     here=1;
                end
                here=1;
