@@ -2,10 +2,11 @@ clc;
 close all;
 clear all;
 
-flag_plotMarkerData=1;
+flag_plotMarkerData=0;
 flag_plotRawMarkerData=0;
 flag_plotInterpolatedMarkers=0;
 flag_plotInterpolatedRigidBodies=1;
+
 
 flag_exportRigidBodyMarkers=1;
 %%
@@ -24,7 +25,7 @@ flag_exportRigidBodyMarkers=1;
 flag_filterMarkerPositions = 1;
 lowPassFilterFrequency = 10; %As in 10 Hz.
 
-flag_writeTRCFile=1;
+flag_writeTRCFile=0;
 unitsLengthTRCFile = 'mm'; %The data is not displayed in the GUI correctly 
                     % unless its in mm
 
@@ -82,7 +83,7 @@ slashChar = '/';
 %%
 %Check that we're in the correct directory
 %%
-cd('/home/mmillard/work/code/stuttgart/FKFS/WhiplashExperimentProcessing/code');
+cd('/home/mjhmilla/dev/projectsBig/stuttgart/FKFS/WhiplashExperimentProcessing/code');
 localPath = pwd();
 idxSlash = strfind(localPath,slashChar);
 parentFolder      = localPath(1,idxSlash(end):end);
@@ -96,13 +97,14 @@ codeFolder=localPath;
 %%
 % Folders
 %%
-addpath('algorithms/');
-addpath('inputOutput/');
+addpath(['algorithms',slashChar]);
+addpath(['inputOutput',slashChar]);
 addpath(codeFolder);
-
 
 bodyNames           = {'head','torso'};
 dataDir             = '../data/01_preprocessing/car/optitrack/';
+dataDir(strfind(dataDir,'/'))=slashChar;
+
 
 cd(dataDir);
 dayFolders = dir();
@@ -118,17 +120,35 @@ for indexDay = 3:1:length(dayFolders)
         cd(subjectFolders(indexFolders).name);
         dataFiles = dir();
 
+        %Count the number of files
+        fileCount=0;
         for indexFile=3:1:length(dataFiles)
             if(contains(dataFiles(indexFile).name,'.csv')==1 ...
                     && contains(dataFiles(indexFile).name,'lock')==0)
+                fileCount=fileCount+1;
+            end
+        end
 
+        fileNumber=0;
+        for indexFile=3:1:length(dataFiles)
+            if(contains(dataFiles(indexFile).name,'.csv')==1 ...
+                    && contains(dataFiles(indexFile).name,'lock')==0)
+                
+               fileNumber=fileNumber+1;
+               fprintf('%i of %i\n', fileNumber, fileCount);
+               t0=tic;
                [motiveColData,motiveHeader] = ...
                    readExportedMotiveData(dataFiles(indexFile).name);
+               t1=toc(t0);
+               fprintf('\t%fs\tLoading: %s\n', t1,dataFiles(indexFile).name);
                
+               t0=tic;
                [frameTimeData, rigidBodyData, rigidBodyMarkerData] ...
                 = interpolateRigidBodyMotionAndMarkers(...
                         motiveColData,motiveHeader,bodyNames,...
                         flag_exportRigidBodyMarkers);
+               t1=toc(t0);
+               fprintf('\t%fs\tInterpolating\n', t1);
 
                [rigidBodyData,rigidBodyMarkerData] = ...
                     renameMarkers(rigidBodyData,rigidBodyMarkerData,...
@@ -136,8 +156,16 @@ for indexDay = 3:1:length(dayFolders)
                         markerName,...
                         newMarkerName);
 
-               disp('Add code to filter the markers here');
-               
+               if(flag_filterMarkerPositions==1)
+                   t0=tic;
+                   [rigidBodyMarkerData] = filterMarkerData(...
+                                       rigidBodyMarkerData,...
+                                       lowPassFilterFrequency, ...
+                                       motiveHeader.Capture_Frame_Rate);
+                   t1=toc(t0);
+                   fprintf('\t%fs\tFiltering\n', t1);
+               end
+
                if(flag_plotMarkerData==1)
                     %Find some interpolated frames
                     interpolatedIntervals = [];
@@ -189,12 +217,13 @@ for indexDay = 3:1:length(dayFolders)
                     pathAndFileName = dataFiles(indexFile).name;
                     assert(strcmp(pathAndFileName(1,(end-3):end),'.csv'));
                     pathAndFileName(1,(end-3):end)='.trc';
-                    
+                    t0=tic;
                     success = writeTRCFile(pathAndFileName, ...
                                 frameTimeData, rigidBodyMarkerData,...
                                 motiveHeader, newMarkerName,...
                                 unitsLengthTRCFile);
-                    here=1;
+                    t1=toc(t0);
+                    fprintf('\t%fs\tWriting TRC file\n', t1);
                end
                here=1;
 
