@@ -116,7 +116,7 @@ end
 % findOnsetWithinWindow 
 %%
 
-noiseThresholdPercentile = 0.975;
+noiseThresholdPercentile = 0.95;
 
 %%
 % Onset settings
@@ -126,7 +126,7 @@ minimumAcceptableOnsetTime = 0;
 %acceleration. This could happen if somehow the person was aware the
 %acceleration was about to happen and tensed in preparation.
 
-maximumAcceptableOnsetTime = 0.5;
+maximumAcceptableOnsetTime =  1;
 %Here we pick a generous window following the acceleration onset in which
 %we allow EMG signal onsets to be included.
 
@@ -347,6 +347,7 @@ for i=[biopacIndices.indexAccCarX,biopacIndices.indexAccHeadX]
     if(flag_plotOnset)
         [figOnset,indexSubplot] = ...
             addOnsetPlot(timeV, accNorm,...
+                    [1, length(timeV)],...
                     carBiopacDataPeakIntervals(i),...
                     dataLabel,...
                     figOnset, subPlotPanel, indexSubplot);
@@ -397,6 +398,7 @@ for i=1:1:size(carBiopacData.labels,1)
 
             [figOnset,indexSubplot] = ...
                 addOnsetPlot(timeV, dataTransformed,...
+                        indicesOfWindow,...
                         carBiopacDataPeakIntervals(i),...
                         dataLabel,...
                         figOnset, subPlotPanel, indexSubplot);

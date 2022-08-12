@@ -1,4 +1,4 @@
-function [figH,indexSubplot] = addOnsetPlot(timeV, dataV,...
+function [figH,indexSubplot] = addOnsetPlot(timeV, dataV, windowInterval,...
     thresholdStruct,  dataLabel, figH, subPlotPanel, indexSubplot)
 
 figure(figH);
@@ -36,7 +36,13 @@ if(isnan(middleThresholds)==0)
     plot([timeMin;timeMax],[1;1].*maximumThresholds(1,2),'--','Color',[0,0,0]);
     hold on;            
 end
-plot(timeV, dataV,'Color',[0,0,0]);
+
+
+plot(timeV, dataV,'Color',[1,1,1].*0.5);
+hold on;            
+
+idxWindow = [windowInterval(1,1):1:windowInterval(1,2)];
+plot(timeV(idxWindow,1), dataV(idxWindow,1),'Color',[1,1,1].*0);
 hold on;            
 
 yLimMin = min(dataV);
@@ -79,6 +85,21 @@ for k=1:1:size(intervals,1)
         yLimMin=vtt+vNeg*0.2;
     end
 end
+
+%Plot the window that is being analyzed for peaks
+i1 = windowInterval(1,1);
+i2 = windowInterval(1,2);
+
+t0 = timeV(i1,1);
+t1 = timeV(i2,1);     
+vMax = max(dataV);
+vMin = min(dataV);
+
+plot([t0;t1;t1;t0;t0],[vMin;vMin;vMax;vMax;vMin],'Color',[0,0,1]);
+hold on;
+
+
+
 ylim([yLimMin,yLimMax]);
 xlabel('Time (s)');
 ylabel('Value');

@@ -88,7 +88,7 @@ while(index < length(nData) && flag_found==0)
 end
 
 
-indicesNoise = find(data <= noiseThresholdPercentile);
+indicesNoise = find(data <= noiseThreshold);
 noiseNotInWindow = indicesNoise(indicesNoise < windowStart ...
                               | indicesNoise > windowEnd);
 
@@ -143,6 +143,7 @@ for i=1:1:length(indicesWindow)
         peakInterval = [peakInterval; idx];
         peakProbability = [peakProbability;p];
     end
+    
 end
 
 
@@ -150,7 +151,7 @@ if(flag_plotDetails==1)
     subplot(3,1,1);
         plot(dataFilt,'k');
         hold on;
-        plot(peakIndices(:), data(peakIndices(:),1),'.m');
+        plot(peakInterval(:), data(peakInterval(:),1),'.m');
         hold on;
 end
 
