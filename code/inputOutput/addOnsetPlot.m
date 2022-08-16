@@ -42,8 +42,8 @@ plot(timeV, dataV,'Color',[1,1,1].*0.5);
 hold on;            
 
 idxWindow = [windowInterval(1,1):1:windowInterval(1,2)];
-plot(timeV(idxWindow,1), dataV(idxWindow,1),'Color',[1,1,1].*0);
-hold on;            
+%plot(timeV(idxWindow,1), dataV(idxWindow,1),'Color',[1,1,1].*0);
+%hold on;            
 
 yLimMin = min(dataV);
 yLimMax = max(dataV);

@@ -113,14 +113,40 @@ switch flag_AccProcessing
 end 
 
 %%
-% findOnsetWithinWindow 
+% findOnsetUsingNoiseModel 
 %%
 
-noiseThresholdPercentile = 0.95;
 
-%%
-% Onset settings
-%%
+typeOfNoiseModel = 2;
+% 0: Uses an exponential law to model the noise
+% 1: Uses a power law to model the noise
+% 2: Uses a mixture of Gaussians to model the noise. This approach
+%    does a reasonable job for many strange looking distributions.
+
+maxAcceptableNoiseProbability = 0.001;
+% A peak is treated as being noise if there is a 
+% maxAcceptableNoiseProbability probability, or less, of it being noise.
+% The probability that a point is noise is evaluated by the noise model
+% which has been fit to data the beginning of the trial. Note that
+% the values for this parameter depend on the noise model:
+%
+% Exponential law noise model (typeOfNoiseModel=0)
+%   This noise model goes to zero exponentially. You can set 
+%   maxAcceptableNoiseProbability to quite small values and the 
+%   function onset function will still work
+%
+% Power law noise model (typeOfNoiseModel=0)
+%   This noise model goes to zero slowly - it has a 'fat tail'. 
+%   If you set maxAcceptableNoiseProbability to small values the 
+%   onset detection system will not find any onsets.
+
+lowFrequencyFilterCutoff = 10;
+% An onset is accepted only if both the filtered version of the signal
+% and the raw signal have values that have a low probability of being
+% noise. This additional filtering is in place so that very short lived
+% transients are ignored.
+
+
 minimumAcceptableOnsetTime = 0;
 %Here a negative value means that the EMG signal started before the
 %acceleration. This could happen if somehow the person was aware the
@@ -128,11 +154,10 @@ minimumAcceptableOnsetTime = 0;
 
 maximumAcceptableOnsetTime =  1;
 %Here we pick a generous window following the acceleration onset in which
-%we allow EMG signal onsets to be included.
+%we allow EMG signal onsets to be included. Note that this onset time will
+%be placed after the latest of the two onset times: car acceleration and
+%head acceleration.
 
-maximumAcceptableNoiseProbability = 0.01;
-%A peak is treated as being noise if there is a 
-% maximumAcceptableNoiseProbability chanc of it being noise.
 
 %%
 %Plotting configuration
@@ -362,29 +387,42 @@ end
 for i=1:1:size(carBiopacData.labels,1)
     if(contains(carBiopacData.labels(i,:),emgKeyword))
         
-        indexAccStart = ...
-            carBiopacDataPeakIntervals(biopacIndices.indexAccCarX).intervals(1,1);
 
-        indicesOfWindow = [indexAccStart,indexAccStart] ...
-            + [minimumAcceptableOnsetTime,...
-               maximumAcceptableOnsetTime].*carBiopacSampleFrequency;
-        indicesOfWindow = round(indicesOfWindow);
+        indexAccMin = ...
+            min( carBiopacDataPeakIntervals(biopacIndices.indexAccCarX).intervals(1,1),...
+                 carBiopacDataPeakIntervals(biopacIndices.indexAccHeadX).intervals(1,1));
 
+        indexAccMax = ...
+            max( carBiopacDataPeakIntervals(biopacIndices.indexAccCarX).intervals(1,1),...
+                 carBiopacDataPeakIntervals(biopacIndices.indexAccHeadX).intervals(1,1));
 
+        timeAccMin = timeV(indexAccMin,1);
+        timeAccMax = timeV(indexAccMax,1);
+        timeWindowStart = timeAccMin+minimumAcceptableOnsetTime;
+        timeWindowEnd   = timeAccMax+maximumAcceptableOnsetTime; 
 
-        flag_plotDetails=1;
+        signalWindowIndices = ...
+            [timeWindowStart,timeWindowEnd].*carBiopacSampleFrequency;
 
-        [peakInterval, noiseProbability,dataTransformed] = ...
-            findOnsetWithinWindow(  carBiopacData.data(:,i), ...
-                                    indicesOfWindow,...
-                                    noiseThresholdPercentile,...
-                                    maximumAcceptableNoiseProbability,...
+        signalWindowIndices = round(signalWindowIndices);
+
+        noiseWindowIndices = [1,round(indexAccMin*0.95)];
+
+        flag_plotDetails=0;
+
+        [peakIntervalRaw,peakIntervalFiltered, dataTrans,dataTransFilt] = ...
+            findOnsetUsingNoiseModel(  carBiopacData.data(:,i), ...
+                                    signalWindowIndices,...
+                                    noiseWindowIndices,...
+                                    maxAcceptableNoiseProbability,...
+                                    lowFrequencyFilterCutoff,...
                                     carBiopacSampleFrequency,...
+                                    typeOfNoiseModel,...
                                     flag_plotDetails);
 
 
         carBiopacDataPeakIntervals(i).intervals   = ...
-            [min(peakInterval),max(peakInterval)];
+            [min(peakIntervalRaw),max(peakIntervalRaw)];
         carBiopacDataPeakIntervals(i).middleThresholds = ...
             nan;
         carBiopacDataPeakIntervals(i).maximumThresholds = ...
@@ -394,14 +432,62 @@ for i=1:1:size(carBiopacData.labels,1)
             dataLabel = carBiopacData.labels(i,:);
             dataLabel = dataLabel(1,1:max(30,length(dataLabel)));
 
+            figure(figOnset);
+            maxPlotCols = size(subPlotPanel,2);
+            maxPlotRows = size(subPlotPanel,1);
+            
+            row = ceil(indexSubplot/maxPlotCols);
+            col = max(1,indexSubplot-(row-1)*maxPlotCols);
+            
+            subplot('Position',reshape(subPlotPanel(row,col,:),1,4));            
 
+            filledBox = 1;
+            lineBox = 0;
 
+            figOnset = addBox(figOnset, ...
+                timeV(min(peakIntervalRaw)),...
+                timeV(max(peakIntervalRaw)),...
+                dataTrans(min(peakIntervalRaw)),...
+                max(dataTrans(peakIntervalRaw)),...
+                [1,0,0],...
+                filledBox);
+            hold on;
+
+            figOnset = addBox(figOnset, ...
+                timeV(min(peakIntervalFiltered)),...
+                timeV(max(peakIntervalFiltered)),...
+                dataTrans(min(peakIntervalFiltered)),...
+                max(dataTrans(peakIntervalFiltered)),...
+                [0,1,1],...
+                filledBox);
+            hold on;
+          
             [figOnset,indexSubplot] = ...
-                addOnsetPlot(timeV, dataTransformed,...
-                        indicesOfWindow,...
+                addOnsetPlot(timeV, dataTrans,...
+                        signalWindowIndices,...
                         carBiopacDataPeakIntervals(i),...
                         dataLabel,...
                         figOnset, subPlotPanel, indexSubplot);
+                
+            figOnset = addBox(figOnset, ...
+                timeV(min(noiseWindowIndices),1),...
+                timeV(max(noiseWindowIndices),1),...
+                0,...
+                max(dataTrans(noiseWindowIndices(1,1):noiseWindowIndices(1,2),1)),...
+                [1,0,0],...
+                lineBox);
+            hold on;
+
+
+            plot(timeV,dataTransFilt,'k');
+            hold on;  
+
+
+            timeWindow = timeV(signalWindowIndices);
+            timeDelta = diff(timeWindow);
+            xlim([timeWindow(1,1)-timeDelta, timeWindow(2,1)+0.5*timeDelta]);
+
+            here=1;
 
         end
     end
