@@ -1,5 +1,6 @@
-function [figH,indexSubplot] = addOnsetPlot(timeV, dataV, windowInterval,...
-    thresholdStruct,  dataLabel, figH, subPlotPanel, indexSubplot)
+function [figH,indexSubplot] = addOnsetPlot(timeV, dataV, ...
+    signalWindowInterval, noiseModelWindows, onsetWindows,  ...
+    onsetColor, dataLabel, figH, subPlotPanel, indexSubplot)
 
 figure(figH);
 maxPlotCols = size(subPlotPanel,2);
@@ -11,45 +12,39 @@ col = max(1,indexSubplot-(row-1)*maxPlotCols);
 subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
 
 
+idxMin = 1;
+idxMax = signalWindowInterval(1,2);
+
 timeMin = min(timeV);
 timeMax = max(timeV);
 
-middleThresholds = ...
-    thresholdStruct.middleThresholds;
-maximumThresholds = ...
-    thresholdStruct.maximumThresholds;
-intervals = ...
-    thresholdStruct.intervals;
-
-if(isnan(middleThresholds)==0)
-    fill([timeMin;timeMax;timeMax;timeMin;timeMin],...
-         [middleThresholds(1,1);middleThresholds(1,1);...
-          middleThresholds(1,2);middleThresholds(1,2);...
-          middleThresholds(1,1)],[1,1,1].*0.75,...
-         'EdgeColor','none');
-    hold on;
-end
-
-if(isnan(middleThresholds)==0)
-    plot([timeMin;timeMax],[1;1].*maximumThresholds(1,1),'--','Color',[0,0,0]);
-    hold on;            
-    plot([timeMin;timeMax],[1;1].*maximumThresholds(1,2),'--','Color',[0,0,0]);
-    hold on;            
-end
 
 
-plot(timeV, dataV,'Color',[1,1,1].*0.5);
+
+plot(timeV(idxMin:idxMax,1), dataV(idxMin:idxMax,1),...
+    'Color',[1,1,1].*0.75,'LineWidth',2);
 hold on;            
 
-idxWindow = [windowInterval(1,1):1:windowInterval(1,2)];
-%plot(timeV(idxWindow,1), dataV(idxWindow,1),'Color',[1,1,1].*0);
-%hold on;            
+           
 
 yLimMin = min(dataV);
 yLimMax = max(dataV);
-for k=1:1:size(intervals,1)   
-    i1 = intervals(k,1);
-    i2 = intervals(k,2);
+
+for k=1:1:size(noiseModelWindows,1)   
+    i1 = noiseModelWindows(k,1);
+    i2 = noiseModelWindows(k,2);
+    t0 = timeV(i1,1);
+    t1 = timeV(i2,1);     
+    v0 = yLimMin;
+    v1 = yLimMax*0.5;
+
+    plot([t0;t1;t1;t0;t0],[v0;v0;v1;v1;v0],'Color',[1,0,0]);
+    hold on;
+end
+
+for k=1:1:size(onsetWindows,1)   
+    i1 = onsetWindows(k,1);
+    i2 = onsetWindows(k,2);
     t0 = timeV(i1,1);
     t1 = timeV(i2,1);     
     v1 = dataV(i1,1);
@@ -67,15 +62,19 @@ for k=1:1:size(intervals,1)
         vtt = vVal + vNeg*0.1;
     end
 
-    plot([t0;t1;t1;t0;t0],[v1;v2;vVal;vVal;v1],'Color',[1,0,0]);
+    plot(timeV(i1:i2,1),dataV(i1:i2,1),'Color',onsetColor,'LineWidth',1);
+    hold on;
+
+    plot([t0;t1;t1;t0;t0],[v1;v2;vVal;vVal;v1],'Color',onsetColor);
     hold on;
     tt = t0-(t1-t0)*0.05;
     vt = v1;
-    plot(tt,vt,'o','Color',[1,0,0]);                
+    plot(t0,vVal,'.','Color',onsetColor,'MarkerFaceColor',onsetColor);                
     hold on;
     text(tt,vtt,sprintf('%1.3f',t0),...
         'VerticalAlignment','middle',...
-        'HorizontalAlignment','left');
+        'HorizontalAlignment','left',...
+        'Color',onsetColor);
     hold on;
     %axis tight;
     if((vtt+vPos*0.1) > yLimMax)
@@ -87,17 +86,16 @@ for k=1:1:size(intervals,1)
 end
 
 %Plot the window that is being analyzed for peaks
-i1 = windowInterval(1,1);
-i2 = windowInterval(1,2);
+i1 = signalWindowInterval(1,1);
+i2 = signalWindowInterval(1,2);
 
 t0 = timeV(i1,1);
 t1 = timeV(i2,1);     
-vMax = max(dataV);
-vMin = min(dataV);
 
-plot([t0;t1;t1;t0;t0],[vMin;vMin;vMax;vMax;vMin],'Color',[0,0,1]);
+plot(   [t0;t1;t1;t0;t0],...
+        [yLimMin;yLimMin;yLimMax;yLimMax;yLimMin],...
+        'Color',[0,0,1]);
 hold on;
-
 
 
 ylim([yLimMin,yLimMax]);

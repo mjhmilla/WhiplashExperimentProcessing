@@ -1,10 +1,16 @@
-function [peakIntervalRaw,peakIntervalFiltered,data,dataFilt] = ...
+function [  peakBlocksRaw,...
+            peakBlocksFiltered,...
+            noiseSubWindowIntervals,...
+            data,...
+            dataFilt] = ...
             findOnsetUsingNoiseModel(data, ...
                                     signalWindow,...
-                                    noiseWindow,...                                                                        
+                                    noiseWindow,...
+                                    numberOfNoiseSubWindows,...
                                     maxAcceptableNoiseProbability,...
+                                    minimumTimingGap,...
                                     lowFrequencyFilterCutoff,...
-                                    sampleFrequency,...
+                                    sampleFrequency,...                                    
                                     typeOfNoiseModel,...
                                     flag_plotDetails)
 
@@ -24,13 +30,16 @@ windowStart = signalWindow(1,1);
 windowEnd   = signalWindow(1,2);
 
 signalIndices   = [signalWindow(1,1):1:signalWindow(1,2)]';
-noiseIndices    = [noiseWindow(1,1):1:noiseWindow(1,2)]';
 
+
+
+%%
+% Transform the data for single-sided analysis
+%%
 
 dataMedian=median(data);
 data = data-dataMedian;
 data = abs(data);
-
 
 dataFilt = [];
 if(isnan(lowFrequencyFilterCutoff)==0)
@@ -38,10 +47,65 @@ if(isnan(lowFrequencyFilterCutoff)==0)
     dataFilt = filtfilt(b,a,data);
 end
 
+%%
+% Divide up the noise window into segments. Find the segment with the 
+% lowest average value. Find all additional segments which are similar.
+% This subset of the noise window will be used to build the noise model
+%%
+
+%numberOfNoiseSubWindows = 5;
+
+%Find the sub interval in the noise window that has the lowest mean value.
+%This will be our prototype.
+noiseSubWindowLowMean = inf;
+noiseSubWindowPrototype = [];
+
+index0=noiseWindow(1,1);
+index1=noiseWindow(1,2);
+indexDelta =round((index1-index0)/numberOfNoiseSubWindows);
+
+indexLowNoiseStart=0;
+indexLowNoiseEnd  =0;
+
+for i=1:1:numberOfNoiseSubWindows
+    indexA = (i-1)*indexDelta + 1;
+    indexB = min(indexA + indexDelta,length(data));
+    meanAB = mean(data(indexA:1:indexB,1));
+
+    if(meanAB < noiseSubWindowLowMean)
+        noiseSubWindowLowMean=meanAB;
+        indexLowNoiseStart=indexA;
+        indexLowNoiseEnd  =indexB;        
+    end
+end
+
+%Go through all of the sub intervals. If the candidate sub interval is
+%not different (using the Wilcoxon ranksum test) from the prototype, it is
+%accepted and added to build the noise model.
+
+noiseIndices=[];
+noiseSubWindowIntervals = [];
+
+for i=1:1:numberOfNoiseSubWindows
+    indexA = (i-1)*indexDelta + 1;
+    indexB = min(indexA + indexDelta, length(data));
+
+    [p,h] = ranksum(data(indexA:1:indexB,1),...
+                data(indexLowNoiseStart:1:indexLowNoiseEnd,1),...
+                'alpha', 0.1);
+
+    %If the hypothesis that the medians are equal cannot be rejected
+    %include this sub interval in the noise model
+    if(h==0)
+        noiseIndices=[noiseIndices, indexA:1:indexB];
+        noiseSubWindowIntervals=[noiseSubWindowIntervals;...
+                         indexA,indexB];
+    end
+end
 
 
 
-
+%noiseIndices    = [noiseWindow(1,1):1:noiseWindow(1,2)]';
 
 
 %%
@@ -87,16 +151,17 @@ if(flag_plotDetails==1)
 
     hold on;
 
-    %noise window
-    minVal = min(data(noiseIndices,1));
-    maxVal = max(data(noiseIndices,1));
-    indexLeft = noiseIndices(1,1);
-    indexRight= noiseIndices(end,1);
+    %noise sub windows
 
-    plot([indexLeft;indexRight;indexRight;indexLeft;indexLeft],...
-         [minVal;minVal;maxVal;maxVal;minVal],'r');
-
-    hold on;
+    for i=1:1:size(noiseSubWindowIntervals,1)
+        indexLeft = noiseSubWindowIntervals(i,1);
+        indexRight= noiseSubWindowIntervals(i,2);
+    
+        plot([indexLeft;indexRight;indexRight;indexLeft;indexLeft],...
+             [minVal;minVal;maxVal;maxVal;minVal],'r');
+    
+        hold on;
+    end
     
 
     if(isnan(lowFrequencyFilterCutoff)==0)
@@ -231,15 +296,45 @@ for i=1:1:length(signalIndices)
 
 end
 
+%Go through the identified signals and group intervals together that only
+%have breaks that are minimumTimingGap or smaller, and ignore isolated 
+%signal segments that are minimumTimingGap or less.
+
+minimumIndexGap = minimumTimingGap*sampleFrequency;
+
+peakBlocksRaw = condenseIndexSeriesToBlocks(peakIntervalRaw, ...
+                                             minimumIndexGap);
+
+peakBlocksFiltered = condenseIndexSeriesToBlocks(peakIntervalFiltered, ...
+                                             minimumIndexGap);
 
 if(flag_plotDetails==1)
     subplot(3,1,1);
         plot(dataFilt,'k');
         hold on;
+        v0 = 0;
+        v1 = max(dataFilt);
+
         plot(peakIntervalRaw(:), data(peakIntervalRaw(:),1),'.m');
         hold on;
+        
+        for i=1:1:size(peakBlocksRaw,1)
+            idx0 = peakBlocksRaw(i,1);
+            idx1 = peakBlocksRaw(i,2);
+            plot([idx0;idx1;idx1;idx0;idx0],[v0;v0;v1;v1;v0],'-m');
+            hold on;
+        end
+
         plot(peakIntervalFiltered(:), data(peakIntervalFiltered(:),1),'.c');
         hold on;
+
+        for i=1:1:size(peakBlocksFiltered,1)
+            idx0 = peakBlocksFiltered(i,1);
+            idx1 = peakBlocksFiltered(i,2);
+            plot([idx0;idx1;idx1;idx0;idx0],[v0;v0;v1;v1;v0],'-c');
+            hold on;
+        end
+        here=1;
         
 end
 
