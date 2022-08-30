@@ -12,14 +12,14 @@ for indexBody=1:1:length(rigidBodyData)
     xyzw = rigidBodyData(indexBody).xyzw(frameNumber,:);
     xyzw = xyzw ./ sqrt(xyzw*(xyzw'));
 
-    rm0B = convertQuaternionToRotationMatrix(...
+    rmB0 = convertQuaternionToRotationMatrix(...
         xyzw(1,1),xyzw(1,2),xyzw(1,3),xyzw(1,4));
 
 
     for indexAxis=1:1:3
         naxis=zeros(3,1);
         naxis(indexAxis,1)=0.05;
-        naxis=rm0B'*naxis;
+        naxis=rmB0*naxis;
         axisColor = [0,0,0];
         axisColor(1,indexAxis)=1;
         plot3([r0B0(1,1);r0B0(1,1)+naxis(1,1)],...
@@ -53,7 +53,7 @@ for indexMarker = 1:1:length(rigidBodyMarkerData)
     plot3(rigidBodyMarkerData(indexMarker).r0M0(frameNumber,1),...
           rigidBodyMarkerData(indexMarker).r0M0(frameNumber,2),...
           rigidBodyMarkerData(indexMarker).r0M0(frameNumber,3),...
-          'Color',[0,1,1]);    
+          'x','Color',[0,1,1]);    
     hold on;
 
     uniqueMarkerName = [rigidBodyMarkerData(indexMarker).parentName,...
@@ -72,9 +72,9 @@ for indexMarker = 1:1:length(rigidBodyMarkerData)
 
     r0B0 = rigidBodyData(indexParent).r0B0(frameNumber,:);
     xyzw = rigidBodyData(indexParent).xyzw(frameNumber,:);
-    rm0B = convertQuaternionToRotationMatrix(...
+    rmB0 = convertQuaternionToRotationMatrix(...
         xyzw(1,1),xyzw(1,2),xyzw(1,3),xyzw(1,4));
-    r0M0 = (r0B0' + rm0B'*rBMB)';
+    r0M0 = (r0B0' + rmB0*rBMB)';
 
     markerColor = [0,0,0];
     if(rigidBodyMarkerData(indexMarker).interpolated(frameNumber,1)==1)

@@ -2,7 +2,7 @@ clc;
 close all;
 clear all;
 
-flag_plotMarkerData=0;
+flag_plotMarkerData=1;
 flag_plotRawMarkerData=0;
 flag_plotInterpolatedMarkers=0;
 flag_plotInterpolatedRigidBodies=1;
@@ -22,12 +22,23 @@ flag_exportRigidBodyMarkers=1;
 % marker
 %%
 
-flag_filterMarkerPositions = 1;
-lowPassFilterFrequency = 10; %As in 10 Hz.
+flag_filterMarkerPositions  = 1;
+lowPassFilterFrequency      = 10; %As in 10 Hz.
 
-flag_writeTRCFile=0;
+flag_writeTRCFile=1;
 unitsLengthTRCFile = 'mm'; %The data is not displayed in the GUI correctly 
                     % unless its in mm
+
+flag_centerDataToMortensenModel = 1;     
+angle = -90*(pi/180);
+c   = cos(angle);
+s   = sin(angle);
+rm  = [ c 0 -s; ...
+        0 1 0; ...
+        s 0 c];
+r0N0 = [0.02;0.351569;0];
+
+MortensenModelFrame = struct('rm',rm,'r0N0',r0N0,'markerName','SJN');
 
 
 parentName = ...
@@ -83,7 +94,7 @@ slashChar = '/';
 %%
 %Check that we're in the correct directory
 %%
-cd('/home/mjhmilla/dev/projectsBig/stuttgart/FKFS/WhiplashExperimentProcessing/code');
+cd('/home/mmillard/work/code/stuttgart/FKFS/WhiplashExperimentProcessing/code');
 localPath = pwd();
 idxSlash = strfind(localPath,slashChar);
 parentFolder      = localPath(1,idxSlash(end):end);
@@ -164,6 +175,13 @@ for indexDay = 3:1:length(dayFolders)
                                        motiveHeader.Capture_Frame_Rate);
                    t1=toc(t0);
                    fprintf('\t%fs\tFiltering\n', t1);
+               end
+
+               if(flag_centerDataToMortensenModel==1)
+                    [rigidBodyData,rigidBodyMarkerData] = ...
+                        moveDataToFrame(rigidBodyData,...
+                                        rigidBodyMarkerData,...   
+                                        MortensenModelFrame);
                end
 
                if(flag_plotMarkerData==1)

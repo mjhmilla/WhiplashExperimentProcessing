@@ -195,8 +195,8 @@ for indexBody = 1:1:length(rigidBodyData)
         rx = rx/qM;
         ry = ry/qM;
         rz = rz/qM;
-        rm0B  = convertQuaternionToRotationMatrix(rx,ry,rz,w);
-
+        rmB0  = convertQuaternionToRotationMatrix(rx,ry,rz,w);
+        rm0B = rmB0';
         %Go the the column for the current body-fixed marker
         indexColumn=1;
         flag_found=0;
@@ -369,9 +369,9 @@ for indexMarker=1:1:length(rigidBodyMarkerData)
             for k = r0M0Gaps(indexGap,1):1:r0M0Gaps(indexGap,2)
                 r0B0 = rigidBodyData(indexParent).r0B0(k,:)';
                 xyzw  = rigidBodyData(indexParent).xyzw(k,:);
-                rm0B = convertQuaternionToRotationMatrix(...
+                rmB0 = convertQuaternionToRotationMatrix(...
                     xyzw(1,1),xyzw(1,2),xyzw(1,3),xyzw(1,4));
-                r0M0 = r0B0 + rm0B'*rBMB;
+                r0M0 = r0B0 + rmB0*rBMB;
                 rigidBodyMarkerData(indexMarker).r0M0(k,:)=r0M0';
                 rigidBodyMarkerData(indexMarker).interpolated(k,1)=1;
             end
