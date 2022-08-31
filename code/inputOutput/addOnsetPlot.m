@@ -1,4 +1,4 @@
-function [figH,indexSubplot] = addOnsetPlot(timeV, dataV, ...
+function [figH,indexSubplot] = addOnsetPlot(timeV, dataRaw, dataFiltered, ...
     signalWindowInterval, noiseModelWindows, onsetWindows,  ...
     onsetColor, dataLabel, figH, subPlotPanel, indexSubplot)
 
@@ -19,16 +19,18 @@ timeMin = min(timeV);
 timeMax = max(timeV);
 
 
+plot(timeV(idxMin:idxMax,1), dataRaw(idxMin:idxMax,1),...
+    'Color',[1,1,1].*0.75,'LineWidth',0.5);
+hold on; 
 
-
-plot(timeV(idxMin:idxMax,1), dataV(idxMin:idxMax,1),...
-    'Color',[1,1,1].*0.75,'LineWidth',2);
+plot(timeV(idxMin:idxMax,1), dataFiltered(idxMin:idxMax,1),...
+    'Color',[0,0,0],'LineWidth',1);
 hold on;            
 
            
 
-yLimMin = min(dataV);
-yLimMax = max(dataV);
+yLimMin = min(dataRaw);
+yLimMax = max(dataRaw);
 
 for k=1:1:size(noiseModelWindows,1)   
     i1 = noiseModelWindows(k,1);
@@ -47,22 +49,22 @@ for k=1:1:size(onsetWindows,1)
     i2 = onsetWindows(k,2);
     t0 = timeV(i1,1);
     t1 = timeV(i2,1);     
-    v1 = dataV(i1,1);
-    v2 = dataV(i2,1);
-    vMedian = median(dataV);
-    vPos = max(dataV(i1:i2,1)-vMedian);
-    vNeg = min(dataV(i1:i2,1)-vMedian);
+    v1 = dataFiltered(i1,1);
+    v2 = dataFiltered(i2,1);
+    vMedian = median(dataFiltered);
+    vPos = max(dataFiltered(i1:i2,1)-vMedian);
+    vNeg = min(dataFiltered(i1:i2,1)-vMedian);
     vVal = 0;
     vtt = 0;
     if(abs(vPos) >= abs(vNeg))
-        vVal = max(dataV(i1:i2,1));
-        vtt = vVal + vPos*0.1;
+        vVal = max(dataFiltered(i1:i2,1));
+        vtt = vVal + (yLimMax-yLimMin)*0.05;
     else
-        vVal = min(dataV(i1:i2,1));
-        vtt = vVal + vNeg*0.1;
+        vVal = min(dataFiltered(i1:i2,1));
+        vtt = vVal - (yLimMax-yLimMin)*0.05;
     end
 
-    plot(timeV(i1:i2,1),dataV(i1:i2,1),'Color',onsetColor,'LineWidth',1);
+    plot(timeV(i1:i2,1),dataFiltered(i1:i2,1),'Color',onsetColor,'LineWidth',2);
     hold on;
 
     plot([t0;t1;t1;t0;t0],[v1;v2;vVal;vVal;v1],'Color',onsetColor);

@@ -1,4 +1,4 @@
-function success = extractOnsetTimesFromBiopacData(participantLabel,subdir,slashChar)
+function success = extractOnsetTimesFromBiopacData(participantLabel,subdir,slashChar,messageLevel)
 
 success = 0;
 %clc;
@@ -79,12 +79,13 @@ ecgRemovalFilterWindowParams = struct('windowDuration',0.16,...
 %%
 % Accelerometer processing
 %%
-colorRaw        = [0,1,0];
-colorFiltered   = [0,0,0];
+colorOnset      = [0,0,1];
 
 accelerometerLowpassFilterFrequency = 10;
 
 minimumAcceleration = 0.25;
+%Trials in which the acceleration of the car is less than minimumAcceleration
+%are ignored.
 
 noiseWindowNorm     = [0,0.29];
 signalWindowNorm    = [0.3,0.99];
@@ -219,9 +220,9 @@ minimumTimingGap = 0.050;
 %Plotting configuration
 %%
 maxPlotRows          = 4;
-maxPlotCols          = 3;
-plotWidthCm          = 4.5; 
-plotHeightCm         = 4.5;
+maxPlotCols          = 2;
+plotWidthCm          = 26.0; 
+plotHeightCm         = 5.0;
 plotHorizMarginCm    = 1.5;
 plotVertMarginCm     = 1.5;
 
@@ -266,7 +267,10 @@ for idxFile = 1:1:length(indexMatFile)
     fileNameNoSpace(1,idxSpace) = '_';
 
 
-    fprintf('Loading: \t%s\n',filesCarBiopacFolder(indexMatFile(idxFile,1)).name);
+    if(messageLevel > 0)
+        fprintf('  Loading: \t%s\n',filesCarBiopacFolder(indexMatFile(idxFile,1)).name);
+    end
+
     carBiopacDataRaw = load([filesCarBiopacFolder(indexMatFile(idxFile,1)).folder,...
                          slashChar,...
                           filesCarBiopacFolder(indexMatFile(idxFile,1)).name]);
@@ -278,12 +282,12 @@ for idxFile = 1:1:length(indexMatFile)
     duration = (size(carBiopacData.data,1)/carBiopacSampleFrequency);
     timeV = [dt:dt:duration]';
     
-    
-    fprintf('  Channel labels:\n');
-    for i=1:1:size(carBiopacData.labels,1)
-        fprintf('  %i.\t%s\n',i,carBiopacData.labels(i,:));  
+    if(messageLevel > 1)
+        fprintf('    Channel labels:\n');
+        for i=1:1:size(carBiopacData.labels,1)
+            fprintf('    %i.\t%s\n',i,carBiopacData.labels(i,:));  
+        end
     end
-    
     % build a table of indices
     labelKeywords = {...
       'STR_L',...                                              
@@ -449,24 +453,36 @@ for idxFile = 1:1:length(indexMatFile)
                                             typeOfNoiseModelAcc,...
                                             flag_plotOnsetAlgorithmDetails);
 
-                %Pick the interval with the highest acceleration                
-                peakIntervalFilteredUpd = peakIntervalFiltered(1,:);
-                if(i== biopacIndices.indexAccCarX && ...
-                        size(peakIntervalFiltered,1) > 1)
-                   maxAccVal = zeros(size(peakIntervalFiltered,1),1);
-                   for k=1:1:size(peakIntervalFiltered,1)
-                       i0=peakIntervalFiltered(k,1);
-                       i1=peakIntervalFiltered(k,2);                       
-                       maxAccVal(k,1)=max(dataTransFilt(i0:1:i1,1));
-                   end
-                   [val,idx]=max(maxAccVal);
-                    peakIntervalFilteredUpd=peakIntervalFiltered(idx,:);
+
+
+                %Pick the interval with the highest acceleration   
+                peakIntervalFilteredUpd=[];
+
+                if(max(dataTransFilt) > minimumAcceleration)
+                    if(i== biopacIndices.indexAccCarX && ...
+                            size(peakIntervalFiltered,1) > 1)
+                       maxAccVal = zeros(size(peakIntervalFiltered,1),1);
+                       for k=1:1:size(peakIntervalFiltered,1)
+                           i0=peakIntervalFiltered(k,1);
+                           i1=peakIntervalFiltered(k,2);                       
+                           maxAccVal(k,1)=max(dataTransFilt(i0:1:i1,1));
+                       end
+                       [val,idx]=max(maxAccVal);
+                        peakIntervalFilteredUpd=peakIntervalFiltered(idx,:);
+                    elseif(isempty(peakIntervalFiltered)==0)
+                        peakIntervalFilteredUpd = peakIntervalFiltered(1,:);
+                    end
+                else 
+                    if(i== biopacIndices.indexAccCarX)
+                        flag_carMoved=0;
+                    end
                 end
-        
                 for k=1:1:3
                     carBiopacDataPeakIntervals(i+k-1).intervals   = ...
                         peakIntervalFilteredUpd;
                 end
+
+
 
                 dataLabel='';
                 if(contains(carBiopacData.labels(i,:),accHeadKeyword))
@@ -479,11 +495,12 @@ for idxFile = 1:1:length(indexMatFile)
                 if(flag_plotOnset)
                     [figOnset,indexSubplot] = ...
                         addOnsetPlot(   timeV, ...
+                                        dataTrans,...
                                         dataTransFilt,...
                                         signalWindowIndices,...
                                         noiseBlocks,...
                                         peakIntervalFiltered,...
-                                        colorFiltered,...
+                                        colorOnset,...
                                         dataLabel,...
                                         figOnset, ...
                                         subPlotPanel, ...
@@ -501,16 +518,26 @@ for idxFile = 1:1:length(indexMatFile)
 
         for i=1:1:size(carBiopacData.labels,1)
             if(contains(carBiopacData.labels(i,:),emgKeyword))
-                
-        
-                indexAccMin = ...
-                    min( carBiopacDataPeakIntervals(biopacIndices.indexAccCarX).intervals(1,1),...
-                         carBiopacDataPeakIntervals(biopacIndices.indexAccHeadX).intervals(1,1));
-        
-                indexAccMax = ...
-                    max( carBiopacDataPeakIntervals(biopacIndices.indexAccCarX).intervals(1,1),...
-                         carBiopacDataPeakIntervals(biopacIndices.indexAccHeadX).intervals(1,1));
-        
+
+                assert(isempty(carBiopacDataPeakIntervals(biopacIndices.indexAccCarX).intervals)==0);
+
+                %Take the first identified acceleration interval in the
+                %signal window
+                indexAccMin = carBiopacDataPeakIntervals(biopacIndices.indexAccCarX).intervals(1,:);
+                indexAccMax = carBiopacDataPeakIntervals(biopacIndices.indexAccCarX).intervals(1,:);                
+
+                %If the head also moves, include its movement in definining
+                %the minimum and maximum times.
+                if(isempty(carBiopacDataPeakIntervals(biopacIndices.indexAccHeadX).intervals)==0)
+                    indexAccMin = ...
+                        min( carBiopacDataPeakIntervals(biopacIndices.indexAccCarX).intervals(1,:),...
+                             carBiopacDataPeakIntervals(biopacIndices.indexAccHeadX).intervals(1,:));
+            
+                    indexAccMax = ...
+                        max( carBiopacDataPeakIntervals(biopacIndices.indexAccCarX).intervals(1,:),...
+                             carBiopacDataPeakIntervals(biopacIndices.indexAccHeadX).intervals(1,:));
+                end
+
                 timeAccMin = timeV(indexAccMin,1);
                 timeAccMax = timeV(indexAccMax,1);
                 timeWindowStart = timeAccMin+minimumAcceptableOnsetTime;
@@ -562,11 +589,12 @@ for idxFile = 1:1:length(indexMatFile)
 
                     [figOnset,indexSubplot] = ...                        
                         addOnsetPlot(   timeV, ...
+                                        dataTrans,...
                                         dataTransFilt,...
                                         signalWindowIndices,...
                                         noiseBlocks,...
                                         peakIntervalFiltered,...
-                                        colorFiltered,...
+                                        colorOnset,...
                                         dataLabel,...
                                         figOnset, ...
                                         subPlotPanel, ...
@@ -591,9 +619,13 @@ for idxFile = 1:1:length(indexMatFile)
         onsetData=[];
         carAccOnsetTime = ...
             timeV(carBiopacDataPeakIntervals(indexCarAcc).intervals(1,1),1);
-        headAccOnsetTime = ...
-            timeV(carBiopacDataPeakIntervals(indexHeadAcc).intervals(1,1),1);
-        
+        headAccOnsetTime = max(timeV);
+
+        if(isempty(carBiopacDataPeakIntervals(indexHeadAcc).intervals)==0)
+            headAccOnsetTime = ...
+                timeV(carBiopacDataPeakIntervals(indexHeadAcc).intervals(1,1),1);
+        end
+                
         %Go and calculate the difference in onset time.
         for i=1:1:size(carBiopacData.labels,1)
             if(contains(carBiopacData.labels(i,:),emgKeyword))
@@ -653,20 +685,26 @@ for idxFile = 1:1:length(indexMatFile)
         fid = fopen(fileNameOnset,'w');
         fprintf(fid,'Name,DelayCarToEMG,DelayHeadToEMG\n');
 
-        fprintf('\n\nOnset Times\n');
+        if(messageLevel > 0)
+            fprintf('\n  Channel\t\tCar-Onset\tHead-Onset\n');
+        end
         for i=1:1:size(onsetData,1)
             for j=1:1:size(onsetData,2)
                 %print to file
                 fprintf(fid,'%s,',onsetData{i,j});        
                 %print to screen
-                if(j <= 1 || i==1)
-                    fprintf('%s\t',onsetData{i,j});        
-                else
-                    fprintf('%s\t\t\t',onsetData{i,j});
+                if(messageLevel > 0)                
+                    if(j <= 1 || i==1)
+                        fprintf('  %s\t',onsetData{i,j});        
+                    else
+                        fprintf('  %s\t',onsetData{i,j});
+                    end
                 end
             end
             fprintf(fid,'\n');
-            fprintf('\n');
+            if(messageLevel > 0)
+                fprintf('\n');
+            end
         
         end
         fclose(fid);
@@ -679,6 +717,7 @@ for idxFile = 1:1:length(indexMatFile)
             print('-dpng', sprintf([outputBiopacFolder,'/fig_Onset_EMG%i_Acc%i_%s.png'],...
                             flag_EMGProcessing,flag_AccProcessing,...
                             fileNameNoSpace));
+            here=1;
         
         end
     end
