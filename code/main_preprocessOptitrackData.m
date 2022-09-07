@@ -124,7 +124,7 @@ cd(codeFolder);
 cd(dataDir);
 dataDir = pwd();
 
-for indexParticipant=1:1:3
+for indexParticipant=2:1:3
 
     participantFolderStr = num2str(indexParticipant);
     if(length(participantFolderStr)<2)

@@ -27,8 +27,8 @@ codeFolder=localPath;
 %%
 % Folders
 %%
-addpath('algorithms/');
-addpath('inputOutput/');
+addpath(['algorithms',slashChar]);
+addpath(['inputOutput',slashChar]);
 
 
 %For a simple example here I'll manually set the folder that we 
@@ -39,8 +39,8 @@ addpath('inputOutput/');
 
 %participantLabel = 'participant02';
 
-carBiopacFolder = ['../data/',participantLabel,subdir];
-outputBiopacFolder = ['../output/',participantLabel,subdir];
+carBiopacFolder = ['..',slashChar,'data',slashChar,participantLabel,subdir];
+outputBiopacFolder = ['..',slashChar,'output',slashChar,participantLabel,subdir];
 
 %%
 % Biopac information
@@ -679,8 +679,8 @@ for idxFile = 1:1:length(indexMatFile)
             end
         end
         
-        fileNameOnset = sprintf([outputBiopacFolder,'/table_Onset_EMG%i_Acc%i.csv'],...
-                                    flag_EMGProcessing,flag_AccProcessing);
+        fileNameOnset = sprintf([outputBiopacFolder,'%stable_Onset_EMG%i_Acc%i.csv'],...
+                                    slashChar,flag_EMGProcessing,flag_AccProcessing);
         
         fid = fopen(fileNameOnset,'w');
         fprintf(fid,'Name,DelayCarToEMG,DelayHeadToEMG\n');
@@ -714,8 +714,8 @@ for idxFile = 1:1:length(indexMatFile)
             figOnset = configPlotExporter( figOnset,...
                                             pageWidthCm,...
                                             pageHeightCm);
-            print('-dpng', sprintf([outputBiopacFolder,'/fig_Onset_EMG%i_Acc%i_%s.png'],...
-                            flag_EMGProcessing,flag_AccProcessing,...
+            print('-dpng', sprintf([outputBiopacFolder,'%sfig_Onset_EMG%i_Acc%i_%s.png'],...
+                            slashChar,flag_EMGProcessing,flag_AccProcessing,...
                             fileNameNoSpace));
             here=1;
         

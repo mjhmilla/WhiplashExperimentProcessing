@@ -15,7 +15,7 @@ for i=1:1:21
         strNum = ['0',strNum];
     end
     participantLabel = ['participant',strNum];
-    subdir = '/car/biopac';
+    subdir = [slashChar,'car',slashChar,'biopac'];
 
     disp('----------------------------------------');
     disp(participantLabel);
