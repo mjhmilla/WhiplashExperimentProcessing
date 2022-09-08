@@ -4,11 +4,12 @@ clear all;
 
 flag_plotMarkerData=1;
 flag_plotRawMarkerData=0;
-flag_plotInterpolatedMarkers=0;
-flag_plotInterpolatedRigidBodies=1;
 
+flag_plotInterpolatedMarkers        = 0;
+flag_plotInterpolatedRigidBodies    = 0;
+flag_exportRigidBodyMarkers         = 1;
 
-flag_exportRigidBodyMarkers=1;
+figInput=figure;
 %%
 %The Motive files contain marker positions that are calculated using a 
 %transformation of a fixed rigid body, and measured marker positions that
@@ -113,7 +114,7 @@ addpath(['inputOutput',slashChar]);
 addpath(codeFolder);
 
 bodyNames           = {'head','torso'};
-dataDir             = '../data/';
+dataDir             = sprintf('..%sdata%s',slashChar,slashChar);
 dataDir(strfind(dataDir,'/'))=slashChar;
 
 
@@ -124,7 +125,7 @@ cd(codeFolder);
 cd(dataDir);
 dataDir = pwd();
 
-for indexParticipant=2:1:3
+for indexParticipant=1:1:3
 
     participantFolderStr = num2str(indexParticipant);
     if(length(participantFolderStr)<2)
@@ -134,7 +135,7 @@ for indexParticipant=2:1:3
     cd(dataDir);
     cd(participantFolderStr);
     participantDir = pwd;
-    cd('car/optitrack/csv/');
+    cd(sprintf('car%soptitrack%scsv%s',slashChar,slashChar,slashChar));
 
     dataFiles = dir();
 
@@ -209,7 +210,7 @@ for indexParticipant=2:1:3
                     interpolatedIntervals=[1,1];
                 end
                 
-                figInput=figure;
+
                 %figInterpolation=figure;
                 frameMax = size(rigidBodyMarkerData(1).r0M0,1);
                 for indexInterval=1:1:size(interpolatedIntervals,1)
@@ -243,7 +244,8 @@ for indexParticipant=2:1:3
                 assert(strcmp(fileName(1,(end-3):end),'.csv'));
                 fileName(1,(end-3):end)='.trc';
                 t0=tic;
-                success = writeTRCFile(['../trc/',fileName], ...
+                trcFilePath = [sprintf('..%strc%s',slashChar,slashChar),fileName];
+                success = writeTRCFile(trcFilePath, ...
                             frameTimeData, rigidBodyMarkerData,...
                             motiveHeader, newMarkerName,...
                             unitsLengthTRCFile);
