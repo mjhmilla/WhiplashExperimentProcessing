@@ -32,7 +32,6 @@
 		<BodySet name="bodyset">
 			<objects>
 				<Body name="spine">
-				
 					<!--The geometry used to display the axes of this Frame.-->
 					<FrameGeometry name="frame_geometry">
 						<!--Path to a Component that satisfies the Socket 'frame' of type Frame.-->
