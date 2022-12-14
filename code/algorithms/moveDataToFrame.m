@@ -3,9 +3,7 @@ function [rigidBodyData, rigidBodyMarkerData] = ...
 
 
 
-
 %Rotate all of the marker data about the origin
-
 for indexMarker=1:1:length(rigidBodyMarkerData)
    for i = 1:1:size(rigidBodyMarkerData(indexMarker).r0M0,1)
        rigidBodyMarkerData(indexMarker).r0M0(i,:) = ...
@@ -27,7 +25,7 @@ while indexRefMarker < length(rigidBodyMarkerData) && flag_setOffsetVector==0
         while sum(isnan(rigidBodyMarkerData(indexRefMarker).r0M0(frameNumber,:))) > 0
             frameNumber=frameNumber+1;
         end
-        rMN0 = frame.r0N0 - rigidBodyMarkerData(indexRefMarker).r0M0(i,:);
+        rMN0 = frame.r0N0' - rigidBodyMarkerData(indexRefMarker).r0M0(frameNumber,:);
         %rMN0 = - rigidBodyMarkerData(indexRefMarker).r0M0(frameNumber,:);
         flag_setOffsetVector=1;
     else
@@ -68,6 +66,33 @@ for indexBody=1:1:length(rigidBodyData)
 
 end
 
+%Translate all of the frames by rMN0
+for indexBody=1:1:length(rigidBodyData)
+    rigidBodyData(indexBody).r0B0 = rigidBodyData(indexBody).r0B0+rMN0v; 
+end
+
+% rawMarkerData(nMarkers) = ...
+%     struct('r0M0',zeros(n,3),'parentName','',...
+%            'parentIndex',nan,'markerName','','markerIndex',0);
+% 
+% %raw marker data        
+% rawMarkerData(indexMarker).parentName ...
+%     = rigidBodyData(indexBody).bodyName;
+% 
+% rawMarkerData(indexMarker).parentIndex= indexBody;
+% 
+% rawMarkerData(indexMarker).markerName = ...
+%     rigidBodyData(indexBody).markerNames{indexBodyMarker};   
+% 
+% rawMarkerData(indexMarker).markerIndex= indexBodyMarker;
+
+
+
+%Adjust all of the labelled raw marker data
+
+
+
+
 %Get the offset vector
 % rPQ0 =zeros(1,3);
 % 
@@ -96,8 +121,4 @@ end
 % rPQ0v(:,2) = rPQ0v(:,2).*rPQ0(1,2);
 % rPQ0v(:,3) = rPQ0v(:,3).*rPQ0(1,3);
 
-%Translate all of the frames by rMN0
-for indexBody=1:1:length(rigidBodyData)
-    rigidBodyData(indexBody).r0B0 = rigidBodyData(indexBody).r0B0+rMN0v; 
-end
 

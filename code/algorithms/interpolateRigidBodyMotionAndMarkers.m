@@ -18,6 +18,8 @@ rigidBodyData(length(bodyNames)) ...
             'bodyName','','markerNames',[]);
 
 
+
+
 %Count the number of markers each body has, save the marker name and the 
 %name of its parent
 nMarkers = 0;
@@ -86,6 +88,9 @@ for indexBody=1:1:length(bodyNames)
             indexColumn=indexColumn+1;
         end
     end
+    if(flag_found==0)
+        here=1;
+    end
     assert(flag_found==1);
     %Copy the information of the body fixed markers over
     flag_found=0;
@@ -124,20 +129,23 @@ for indexBody=1:1:length(bodyNames)
 
 end
 
-rigidBodyMarkerData(nMarkers) = ...
-    struct('r0M0',zeros(n,3),'parentName','',...
-            'parentIndex',nan,'rBMB',zeros(1,3),'markerName','',...
-            'interpolated',zeros(n,1));
+
 
 %%
 % Populate the basic information of each marker: its name, the name of the
 % parent body, the id of the parent body, and the position of the marker
 % in the local axis
 %%
+rigidBodyMarkerData(nMarkers) = ...
+    struct('r0M0',zeros(n,3),'parentName','',...
+            'parentIndex',nan,'rBMB',zeros(1,3),'markerName','',...
+            'markerIndex',0,'interpolated',zeros(n,1));
+
+
 indexMarker=1;
 for indexBody = 1:1:length(rigidBodyData)
     for indexBodyMarker=1:1:length(rigidBodyData(indexBody).markerNames)
-
+        %Rigid body marker data
         rigidBodyMarkerData(indexMarker).parentName ...
             = rigidBodyData(indexBody).bodyName;
 
@@ -146,7 +154,10 @@ for indexBody = 1:1:length(rigidBodyData)
         rigidBodyMarkerData(indexMarker).markerName = ...
             rigidBodyData(indexBody).markerNames{indexBodyMarker};
 
-        %Find a frame for the rigid body that has a low marker error
+        rigidBodyMarkerData(indexMarker).markerIndex= indexBodyMarker;
+
+      
+ %Find a frame for the rigid body that has a low marker error
         indexColumn=1;
         flag_found=0;
         while indexColumn < length(motiveColData) && flag_found==0
@@ -160,7 +171,6 @@ for indexBody = 1:1:length(rigidBodyData)
             end
         end
         assert(flag_found==1);
-
         [lowMarkerError, lowErrorFrame] = ...
             min(motiveColData(indexColumn).data(:,1));
 
@@ -280,6 +290,8 @@ for indexBody = 1:1:length(rigidBodyData)
 
         rigidBodyMarkerData(indexMarker).interpolated = zeros(n,1);
 
+
+
         indexMarker=indexMarker+1;
     end
 end
@@ -380,6 +392,8 @@ for indexMarker=1:1:length(rigidBodyMarkerData)
     end
 
 end
+
+
 
 
 

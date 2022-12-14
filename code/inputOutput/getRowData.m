@@ -6,12 +6,16 @@ indexComma=1;
 rowData = cell(1,length(dlmLocation));
 
 indexCell=1;
-while indexComma<length(dlmLocation)
+while indexComma<=length(dlmLocation)
     i0=1;
     if(indexComma>1)
         i0 = dlmLocation(1,indexComma-1)+1;    
     end
-    i1 = dlmLocation(1,indexComma)-1;
+    if(indexComma < length(dlmLocation))
+      i1 = dlmLocation(1,indexComma)-1;
+    else
+      i1 = dlmLocation(1,indexComma);
+    end
     indexComma=indexComma+1;
 
     fieldValue = strtrim(line(i0:1:i1));
