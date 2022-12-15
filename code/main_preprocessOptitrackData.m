@@ -105,7 +105,7 @@ slashChar = '/';
 %%
 %Check that we're in the correct directory
 %%
-cd('/home/mmillard/work/code/stuttgart/FKFS/WhiplashExperimentProcessing/code');
+cd('/home/mjhmilla/dev/projectsBig/stuttgart/FKFS/WhiplashExperimentProcessing/code');
 localPath = pwd();
 idxSlash = strfind(localPath,slashChar);
 parentFolder      = localPath(1,idxSlash(end):end);
@@ -159,7 +159,7 @@ indexParticipant=3;
     end
 
     fileNumber=0;
-    indexFile=10;
+    indexFile=9;
 %    for indexFile=3:1:length(dataFiles)
         if(contains(dataFiles(indexFile).name,'.csv')==1 ...
                 && contains(dataFiles(indexFile).name,'lock')==0)
@@ -204,18 +204,14 @@ indexParticipant=3;
 
            if(flag_centerDataToMortensenModel==1)
 
-                frameOffset = calcOffsetVector(rigidBodyMarkerData,...
-                                               MortensenModelFrame);
 
                 rawLabelledMarkerDataTest=...
                     moveMarkerDataToFrame(rawLabelledMarkerData,...
-                                          MortensenModelFrame,...
-                                          frameOffset);
+                                          MortensenModelFrame);
                 
                 rigidBodyMarkerDataTest=...
                     moveMarkerDataToFrame(rigidBodyMarkerData,...
-                                          MortensenModelFrame,...
-                                          frameOffset);                
+                                          MortensenModelFrame);                
 
                 rigidBodyDataTest=...
                     moveRigidBodyDataToFrame(rigidBodyData,...
@@ -228,6 +224,7 @@ indexParticipant=3;
                     moveDataToFrame(rigidBodyData,...
                                     rigidBodyMarkerData,...   
                                     MortensenModelFrame);
+                here=1;
            end
 
            if(flag_plotMarkerData==1)
