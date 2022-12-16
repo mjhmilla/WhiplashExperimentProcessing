@@ -1,4 +1,5 @@
-function rigidBodyData = moveRigidBodyDataToFrame(rigidBodyData,frame,offset)
+function rigidBodyData = moveRigidBodyDataToFrame(rigidBodyData,frame,...
+                                                  offset)
 
 %Rotate all of the rigid body data about the origin
 for indexBody=1:1:length(rigidBodyData)

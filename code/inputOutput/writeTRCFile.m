@@ -25,7 +25,7 @@ end
 
 
 fid = fopen(pathAndFileName,'w');
-
+assert(fid ~= -1, ['Error: fopen failed to open ',pathAndFileName]);
 
 nFrames     = size(rigidBodyMarkerData(1).r0M0,1);
 nMarkers    = length(markersToExport);

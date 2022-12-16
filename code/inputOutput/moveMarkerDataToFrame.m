@@ -1,4 +1,4 @@
-function markerData = moveMarkerDataToFrame(markerData, frame)
+function [markerData,offset] = moveMarkerDataToFrame(markerData, frame,offset)
 
 
 %Rotate all of the marker data about the origin
@@ -9,9 +9,10 @@ for indexMarker=1:1:length(markerData)
    end
 end
 
-offset = calcOffsetVector(markerData,...
-                               frame);
-
+if(isempty(offset))
+    offset = calcOffsetVector(markerData,...
+                                   frame);
+end
 
 %Apply the offset vector to all data
 rMN0v = ones(size(markerData(1).r0M0));
