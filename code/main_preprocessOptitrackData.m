@@ -9,7 +9,7 @@ flag_plotInterpolatedMarkers        = 0;
 flag_plotInterpolatedRigidBodies    = 0;
 flag_exportRigidBodyMarkers         = 1;
 
-flag_useDeprecatedOffset            = 0;
+flag_useDeprecatedOffset            = 1;
 % if flag_useDeprecatedOffset is 0 then,
 %---------------------------------
 % Evaluates the offset between the Mortensen data set and the 
