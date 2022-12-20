@@ -1,4 +1,5 @@
-function [markerData,offset] = moveMarkerDataToFrame(markerData, frame,offset)
+function [markerData,offset] = moveMarkerDataToFrame(markerData,...
+                                frame,offset,flag_useDeprecatedOffset)
 
 
 %Rotate all of the marker data about the origin
@@ -11,7 +12,8 @@ end
 
 if(isempty(offset))
     offset = calcOffsetVector(markerData,...
-                                   frame);
+                                   frame,...
+                                   flag_useDeprecatedOffset);
 end
 
 %Apply the offset vector to all data

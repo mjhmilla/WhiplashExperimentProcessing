@@ -1,4 +1,5 @@
-function frameOffset = calcOffsetVector(rigidBodyMarkerData,frame)
+function frameOffset = calcOffsetVector(rigidBodyMarkerData,frame,...
+    flag_useDeprecatedOffset)
 
 frameOffset          = [0,0,0];
 flag_setOffsetVector = 0;
@@ -13,7 +14,11 @@ while indexReferenceMarker < length(rigidBodyMarkerData) && flag_setOffsetVector
         while sum(isnan(rigidBodyMarkerData(indexReferenceMarker).r0M0(frameNumber,:))) > 0
             frameNumber=frameNumber+1;
         end
-        frameOffset = frame.r0N0' - rigidBodyMarkerData(indexReferenceMarker).r0M0(frameNumber,:);
+        if(flag_useDeprecatedOffset==1)
+            frameOffset = frame.r0N0 - rigidBodyMarkerData(indexReferenceMarker).r0M0(frameNumber,:);                    
+        else
+            frameOffset = frame.r0N0' - rigidBodyMarkerData(indexReferenceMarker).r0M0(frameNumber,:);        
+        end
         %rMN0 = - rigidBodyMarkerData(indexReferenceMarker).r0M0(frameNumber,:);
         flag_setOffsetVector=1;
     else

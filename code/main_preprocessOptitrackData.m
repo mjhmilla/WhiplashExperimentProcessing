@@ -9,6 +9,29 @@ flag_plotInterpolatedMarkers        = 0;
 flag_plotInterpolatedRigidBodies    = 0;
 flag_exportRigidBodyMarkers         = 1;
 
+flag_useDeprecatedOffset            = 0;
+% if flag_useDeprecatedOffset is 0 then,
+%---------------------------------
+% Evaluates the offset between the Mortensen data set and the 
+% marker data as
+%
+%   r0N0-r0M0
+%
+% where r0N0 is 3x1 and r0M0 is 1x3. This produces (surprisingly!) a 3x3
+% matrix of 
+%
+%   [r0N0(1,1),r0N0(1,1),r0N0(1,1)] - [r0M0(1,1),r0M0(1,2),r0M0(1,3)]
+%   [r0N0(2,1),r0N0(2,1),r0N0(2,1)] - [r0M0(1,1),r0M0(1,2),r0M0(1,3)]
+%   [r0N0(3,1),r0N0(3,1),r0N0(3,1)] - [r0M0(1,1),r0M0(1,2),r0M0(1,3)]
+%
+% In which we took the first row as the offset.
+%---------------------------------
+% Otherwise 
+%  
+%  r0N0'-r0M0 
+%
+% is used, which in this case produces the 1x3 vector we are after.
+%
 figInput=figure;
 %%
 %The Motive files contain marker positions that are calculated using a 
@@ -159,7 +182,7 @@ for indexParticipant=3:1:3 %1:1:3
     end
 
     fileNumber=0;
-%    indexFile=9;
+    indexFile=9;
     for indexFile=3:1:length(dataFiles)
         if(contains(dataFiles(indexFile).name,'.csv')==1 ...
                 && contains(dataFiles(indexFile).name,'lock')==0)
@@ -219,7 +242,8 @@ for indexParticipant=3:1:3 %1:1:3
                 [rigidBodyMarkerData,dataOffset]=...
                     moveMarkerDataToFrame(rigidBodyMarkerData,...
                                           MortensenModelFrame,...
-                                          []);                                
+                                          [],...
+                                          flag_useDeprecatedOffset);                                
 
                 rigidBodyData=...
                     moveRigidBodyDataToFrame(rigidBodyData,...
@@ -229,16 +253,17 @@ for indexParticipant=3:1:3 %1:1:3
                 [rawLabelledMarkerData,dataOffsetB]=...
                     moveMarkerDataToFrame(rawLabelledMarkerData,...
                                           MortensenModelFrame,...
-                                          dataOffset);
+                                          dataOffset,...
+                                          flag_useDeprecatedOffset);
                 
                                 
                 assert(norm(dataOffset-dataOffsetB)<1e-6);
 
                 %Obsolete
-                %[rigidBodyDataCheck,rigidBodyMarkerDataCheck] = ...
-                %    moveDataToFrame(rigidBodyData,...
-                %                    rigidBodyMarkerData,...   
-                %                    MortensenModelFrame);
+%                 [rigidBodyData,rigidBodyMarkerData] = ...
+%                    moveDataToFrame(rigidBodyData,...
+%                                    rigidBodyMarkerData,...   
+%                                    MortensenModelFrame);
            end
 
            if(flag_plotMarkerData==1)
