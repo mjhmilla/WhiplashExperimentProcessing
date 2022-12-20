@@ -158,7 +158,7 @@ cd(dataDir);
 dataDir = pwd();
 
 indexParticipant=3;
-for indexParticipant=3:1:3 %1:1:3
+%for indexParticipant=3:1:3 %1:1:3
 
     participantFolderStr = num2str(indexParticipant);
     if(length(participantFolderStr)<2)
@@ -182,8 +182,8 @@ for indexParticipant=3:1:3 %1:1:3
     end
 
     fileNumber=0;
-    indexFile=9;
-    for indexFile=3:1:length(dataFiles)
+    indexFile=8;
+%    for indexFile=3:1:length(dataFiles)
         if(contains(dataFiles(indexFile).name,'.csv')==1 ...
                 && contains(dataFiles(indexFile).name,'lock')==0)
             
@@ -346,5 +346,5 @@ for indexParticipant=3:1:3 %1:1:3
            here=1;
 
         end
-    end
-end
+%    end
+%end
