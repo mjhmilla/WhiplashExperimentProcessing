@@ -15,6 +15,7 @@ while indexReferenceMarker < length(rigidBodyMarkerData) && flag_setOffsetVector
             frameNumber=frameNumber+1;
         end
         if(flag_useDeprecatedOffset==1)
+            frameNumber = size(rigidBodyMarkerData(indexReferenceMarker).r0M0,1);
             frameOffset = frame.r0N0 - rigidBodyMarkerData(indexReferenceMarker).r0M0(frameNumber,:);                    
         else
             frameOffset = frame.r0N0' - rigidBodyMarkerData(indexReferenceMarker).r0M0(frameNumber,:);        
