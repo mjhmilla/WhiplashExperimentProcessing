@@ -46,7 +46,7 @@ figInput=figure;
 % marker
 %%
 
-flag_filterMarkerPositions  = 1;
+flag_filterMarkerPositions  = 0;
 lowPassFilterFrequency      = 10; %As in 10 Hz.
 
 flag_writeTRCFile=1;
@@ -157,7 +157,7 @@ cd(codeFolder);
 cd(dataDir);
 dataDir = pwd();
 
-indexParticipant=3;
+indexParticipant=0;
 %for indexParticipant=3:1:3 %1:1:3
 
     participantFolderStr = num2str(indexParticipant);
@@ -182,7 +182,7 @@ indexParticipant=3;
     end
 
     fileNumber=0;
-    indexFile=8;
+    indexFile=3;
 %    for indexFile=3:1:length(dataFiles)
         if(contains(dataFiles(indexFile).name,'.csv')==1 ...
                 && contains(dataFiles(indexFile).name,'lock')==0)
