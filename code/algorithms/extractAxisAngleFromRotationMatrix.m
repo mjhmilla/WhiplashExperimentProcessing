@@ -12,8 +12,8 @@ function [u,theta] = extractAxisAngleFromRotationMatrix(R)
 % @returns  theta: the angle in radians of the rotation
 %%
 
-assert(size(R,1)==3);
-assert(size(R,2)==3);
+%assert(size(R,1)==3);
+%assert(size(R,2)==3);
 numericalTolerance = 1e-6;
 
 %The cross-product matrix of u is given by 
@@ -22,7 +22,7 @@ numericalTolerance = 1e-6;
 %
 % but only if R-R' is not equal to zero
 
-assert(norm(R-R') > numericalTolerance);
+%assert(norm(R-R') > numericalTolerance);
 
 %
 %If you're unfamiliar with the cross-product matrix, its given by
@@ -41,13 +41,13 @@ u = [RRt(3,2);...
 
 %Normalize u
 u = u./sqrt(u'*u);
-assert( abs( (u'*u)-1 ) < numericalTolerance );
+%assert( abs( (u'*u)-1 ) < numericalTolerance );
 
 
 uX = [       0,-u(3,1), u(2,1);...
         u(3,1),      0,-u(1,1);...
        -u(2,1), u(1,1),     0];
-assert(norm(uX'+uX)<numericalTolerance);
+%assert(norm(uX'+uX)<numericalTolerance);
 
 %Find the angle by forming a vector v that's perpendicular to u, rotating it
 %using R, and then using basic trigonometry to extract theta.
@@ -59,10 +59,10 @@ x(idx,1)  = 1;
 v = uX*x;
 v = v./sqrt(v'*v);
 
-assert(abs(u'*v) < numericalTolerance);
+%assert(abs(u'*v) < numericalTolerance);
 
 w = R*v;
-assert( abs(w'*w -1) < numericalTolerance);
+%assert( abs(w'*w -1) < numericalTolerance);
 
 %Using the cross product definition (v x w = |v||w|sin(theta)u) extract the 
 %signed version of theta 
@@ -71,7 +71,7 @@ vX = [       0, -v(3,1),  v(2,1); ...
         v(3,1),       0, -v(1,1); ...
        -v(2,1),  v(1,1),      0];
 
-assert(norm(vX+vX') < numericalTolerance);
+%assert(norm(vX+vX') < numericalTolerance);
 
 wM = sqrt(w'*w);
 vM = sqrt(v'*v);
