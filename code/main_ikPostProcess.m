@@ -304,65 +304,168 @@ for indexDataDir = 1:1:length(dataDirContents)
                     timeRealizePosition=toc(t0);
 
                     %%
-                    %Now what we want is:
+                    %Now what we want is
+                    %
+                    % X_SkullCOM_T1 where the notation is 
+                    %   X       : transform position and orientation 
+                    %   SkullCOM: to the center of mass of the skull frame
+                    %   T1      : from the T1 frame
                     %  
-                    % 'skull': position and orientation
-                    %      T1: superior position and orientation.   
-                    %   
-                    %  There is no T1 body, but we can get this using:
-                    %
-                    %  1. Approximate: Get the C7 position and orientation.
-                    %     This will ignore, of course, the movement that
-                    %     takes place at the C7 joint (perhaps 1/7th of the
-                    %     movement) and about 1.5 cm of offset in Y.
-                    %
-                    % 2. Exact: 
-                    % 'spine': This has the orientation we want, but not
-                    %          the position
-                    % 'cerv7': The location of the joint to the c7 body in
-                    %          the parent's frame is the position we
-                    %          want.
-                    %
-                    % Note: Roughly the orientation of the bodies is as
-                    %       follows: X fwd, Y up, Z right
-                    % 
                     %%
-                    t0=tic;
-                    bodySet     = model.getBodySet();
-                    bodySpine   = bodySet.get('spine');
-                    bodyC7      = bodySet.get('cerv7');
-                    bodySkull   = bodySet.get('skull');
-
-                    X_Skull_C7 =...
-                        bodySkull.findTransformBetween(modelState,...
-                                                       bodyC7);
-                    timeTransform = toc(t0);
 
                     t0=tic;
-                    %r_(from)(to)(frame)
-                    osim_r7S7 = X_Skull_C7.p;
-                    r7S7 = zeros(1,3);
-                    for i=1:1:3
-                        r7S7(1,i)=osim_r7S7.get(i-1);
-                    end
 
-                    %R_(to)(from)
-                    osim_R_7S = X_Skull_C7.R;
-                    R_7S = zeros(3,3);
-                    for i=1:1:3
-                        for j=1:1:3
-                            R_7S(i,j)=osim_R_7S.get(i-1,j-1);
+                    %Get the transform from the spine to the T1 frame
+                    jointSet = model.getJointSet();
+                    jointAuxT1Jnt=jointSet.get('auxt1jnt');
+                    jointAuxT1JntParentFrame = jointAuxT1Jnt.getParentFrame();
+                    X_Spine_T1 = jointAuxT1JntParentFrame.findTransformInBaseFrame();
+                    [rS1S, RS1]  = convertOpenSimTransformToMatrices(...
+                                        X_Spine_T1); 
+                    if(indexTime==1)
+                        RS1err = RS1-eye(3,3);
+                        for i=1:1:3
+                            for j=1:1:3
+                                assert(abs(RS1err(i,j))<1e-6,...
+                                    ['Error: the T1 frame is rotated',...
+                                     ' w.r.t. the spine frame']);
+                            end
                         end
                     end
-                    timeTransformConvert=toc(t0);
+
+                    %Make sure that the skull's C1 joint frame is at the 
+                    %origin of the skull - later calculations assume this.
+                    jointAux1Jnt = jointSet.get('aux1jnt');
+                    jointAux1JntChildFrame = jointAux1Jnt.getChildFrame();
+                    X_SkullOffset_Skull = jointAux1JntChildFrame.findTransformInBaseFrame();
+                    [rOKO, ROK]  = convertOpenSimTransformToMatrices(...
+                                        X_SkullOffset_Skull);
+
+                    if(indexTime==1)
+                        ROKerr= ROK-eye(3,3);
+                        for i=1:1:3
+                            assert(abs(rOKO(i,1))<1e-6,...
+                                 ['Error: C1 joint of the skull is not',...
+                                  ' at the origin of the skull body.']);
+                            for j=1:1:3
+                                assert(abs(ROKerr(i,j))<1e-6,...
+                                 ['Error: C1 joint of the skull is not',...
+                                  ' aligned with the skull body.']);
+                            end
+                        end
+                    end
+
+                    %Get the transform from ground to the spine, skull.
+                    %Use body C7 to check if the X_Skull_T1 transform is
+                    %close to the X_Skull_T1
+                    bodySet     = model.getBodySet();
+                    bodySpine   = bodySet.get('spine');
+                    bodySkull   = bodySet.get('skull');                    
+                    bodyC7      = bodySet.get('cerv7');
+
+                    X_G_Skull = ...
+                        bodySkull.getTransformInGround(modelState);
+
+                    X_G_Spine = ...
+                        bodySpine.getTransformInGround(modelState);
+
+                    [rGKG, RGK]  = convertOpenSimTransformToMatrices(...
+                                        X_G_Skull);
+                    rKCK         = convertOpenSimVecToVector(...
+                                        bodySkull.get_mass_center());
+
+                    [rGSG, RGS]  = convertOpenSimTransformToMatrices(...
+                                        X_G_Spine);
+                    
+                    %%
+                    %Evaluate the transform from T1 to the skull's 
+                    %COM resolved in the coordinates of T1, which is
+                    %the spine in this case
+                    %%
+                    rGCG = rGKG + (RGK*rKCK);
+                    rG1G = rGSG + (RGS*rS1S);
+
+                    r1CG = rGCG-rG1G;
+                    r1CS = RGS'*r1CG;
+                    RSC  = (RGS')*RGK;
+
+
+                    
+                    %Sanity checks
+                    X_Skull_T1 = ...
+                        bodySkull.findTransformBetween(modelState,...
+                                                       jointAuxT1JntParentFrame);
+                    [r1K1, R1K]=convertOpenSimTransformToMatrices(X_Skull_T1);   
+
+                    if(indexTime==1)
+                        r1KG_test = rGKG-rG1G;
+                        r1K1_test = RGS'*(r1KG_test); 
+                        assert(norm(r1K1_test-r1K1)<1e-6,...
+                               'Error: expressions used to build r1CS are wrong');
+                        assert(norm(RSC-R1K)<1e-6,...
+                            'Error: expressions used to build RSC are in wrong');
+                    end
+
+                    timeTransform = toc(t0);
+                    
+                    
+                    %%
+                    %Manually create the X_Skull_C7 to reverse engineer
+                    %the convention used for the rotation matrices
+                    %
+                    %  Notation convention
+                    %   rG7G: (r) vector
+                    %         (G) from point G
+                    %         (7) to point 7 (the origin of frame 7)
+                    %         (G) in coordinates of frame G
+                    %
+                    %   RGS:  (R) rotation matrix
+                    %         (G) to frame G
+                    %         (S) from frame S
+                    %
+                    %   This convention means that you can check if 
+                    %   a matrix vector multiplication is valid
+                    %
+                    %   R_toF_fromF * r_fromPt_toPt_inF
+                    %
+                    %   The last two characters of the rotation matrix
+                    %   and the vector must match. Note that if you do
+                    %   a transpose operation to R, this is equivalent to
+                    %   switching the from and to frames.
+                    %
+                    %%
+
+                    if(indexTime==1)
+
+                        X_Skull_C7 =...
+                            bodySkull.findTransformBetween(modelState,...
+                                                           bodyC7);                    
+                        [r7K7, R7K]=convertOpenSimTransformToMatrices(X_Skull_C7);
+                        
+                        X_G_C7 = bodyC7.getTransformInGround(modelState);
+                        [rG7G,RG7]=convertOpenSimTransformToMatrices(X_G_C7);
+
+                        r7K7check = RG7'*(rGKG-rG7G);
+                        R7Kcheck  = RG7'*RGK;
+    
+                        r7K7err = norm(r7K7check-r7K7);
+                        R7Kerr = norm(R7Kcheck-R7K);
+                        assert(r7K7err < 1e-6);
+                        assert(R7Kerr < 1e-6);
+                    end
+
+                    %%
+                    % Form the expressions for the transform between
+                    % the joint between the spine-c7 to the skull.
+                    %%
 
                     t0=tic;
-                    [u,theta] = extractAxisAngleFromRotationMatrix(R_7S);
+                    [u,theta] = extractAxisAngleFromRotationMatrix(RSC);
                     timeTransformProcess=toc(t0);
 
                     t0=tic;                    
                     fprintf(fid,'%e,%e,%e,%e,%e,%e,%e,%e\n',...
-                        timeVal, r7S7(1,1), r7S7(1,2), r7S7(1,3), ...
+                        timeVal, r1CS(1,1), r1CS(2,1), r1CS(3,1), ...
                                  u(1,1), u(2,1), u(3,1), theta);
                     timeWrite=toc(t0);
                     here=1;
