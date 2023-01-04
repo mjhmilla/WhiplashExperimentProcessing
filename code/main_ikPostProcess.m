@@ -169,12 +169,56 @@ for indexDataDir = 1:1:length(dataDirContents)
                 outputFileName=[outputFileName(1,1:end-4),'_processed.csv'];
                 outputFileName=fullfile(motProcessedFolder,outputFileName);
 
+                %%
+                % Build the mapping between the column indices of each 
+                % entry in the mot file and the index of the corresponding 
+                % state name. A timing analysis showed that this is the 
+                % most time consuming part of the entire loop, so this 
+                % should only be done once per file
+                %%
+
                 osimStateNames = string(stateVarNames.getitem(0));
                 for i=1:1:(stateVarNames.size-1)
                     osimStateNames=[osimStateNames(),...
                                     string(stateVarNames.getitem(i))];
                 end
 
+                motColumnToStateMapping = ...
+                    struct('motIndex', zeros(length(osimFields)-1,1),...
+                           'stateIndex', zeros(length(osimFields)-1,1),...
+                           'motName',[],...
+                           'stateName',[]);
+
+                for i=1:1:(length(osimFields)-1)
+
+                    j=1;
+                    found=0;
+                    while(j < length(osimStateNames) && found==0)
+
+                        if(contains(osimStateNames{j},...
+                                    [osimFields{i},'/value']))
+                            motColumnToStateMapping.motIndex(i,1)=i;
+                            motColumnToStateMapping.motName= ...
+                                [motColumnToStateMapping.motName,...
+                                 osimFields(i)];
+                            motColumnToStateMapping.stateIndex(i,1)=j;
+                            motColumnToStateMapping.stateName = ...
+                                [motColumnToStateMapping.stateName,...
+                                 osimStateNames(j)];
+                            found=1;
+                        else
+                            j=j+1;
+                        end
+                    end
+                    assert(found==1,...
+                       ['Error: could not find ', osimFields{i},'/value']);
+                end
+
+
+
+                %%
+                % Open a handle to the output file and write header
+                %%
                 fid=fopen(outputFileName,'w');
                 fprintf(fid,'%s,%s,%s,%s,%s,%s,%s,%s\n',...
                     'time','x','y','z','ux','uy','uz','angle');
@@ -185,64 +229,28 @@ for indexDataDir = 1:1:length(dataDirContents)
                     timeVal = osimStruct.time(indexTime);
                     nStatesSet=0;
                     
-%                     if(indexTime > (nTime/10)*indexTime10)
-%                         if(indexTime10==0)
-%                             fprintf('  ');
-%                         end
-%                         fprintf('-');
-%                         indexTime10=indexTime10+1;
-%                     end
+
                     fprintf(repmat('\b',1,(msg)));
                     progress=double(indexTime/nTime);
                     msg=fprintf('    Progress %1.2f/100', progress*100 );
 
 
-                    indexState=1;
+                    %%
+                    % Copy the state over from the loaded mot file into the
+                    % correct spot in the state vector of the model.
+                    %%
                     t0=tic;
-                    while indexState < length(osimStateNames) ...
-                            && nStatesSet < (length(osimFields)-1)
-
-                        iter=1;
-                        found = 0;
-                        indexCoord=0;
-
-                        %%
-                        % This model has hundreds of states. We need to
-                        % set only those states that correspond to the
-                        % coordinates that appear in the IK file. Note that
-                        % each coordinates has a position value (ends with
-                        % '/value') as well as a speed (ends with
-                        % '/speed'). We want the value of the coordinate.                     
-                        %%
-                        tA=tic;
-                        while iter < length(osimFields) && found==0
-                            if(contains(osimStateNames{indexState},...
-                                        [osimFields{iter},'/value']))
-                                found=1;
-                                indexCoord=iter;
-                            end
-                            iter=iter+1;
-                        end
-                        timeScan=toc(tA);
-                        
-                        %%
-                        % Now we have a state name and its corresponding
-                        % value from the IK results: update the state value
-                        %%
-                        if( found == 1 && strcmp(osimFields{indexCoord},'time')==0)                                              
-                            tA=tic;
-                            model.setStateVariableValue(modelState,...
-                                osimStateNames{indexState},...
-                                osimStruct.(osimFields{indexCoord})(indexTime,1));
-                            nStatesSet=nStatesSet+1;
-                            timeStateSet=toc(tA);
-                            here=1;
-                        end
-
-                        indexState=indexState+1;
+                    for i=1:1:length(motColumnToStateMapping.motIndex)
+                       %This variable copy over costs no extra time, but
+                       %makes the code more readable
+                       stateName = osimStateNames{motColumnToStateMapping.stateIndex(i)}; 
+                       fieldName = osimFields{ motColumnToStateMapping.motIndex(i) };
+                       model.setStateVariableValue(...
+                                modelState,...
+                                stateName,...
+                                osimStruct.(fieldName)(indexTime,1)); 
                     end
                     timeGetState=toc(t0);
-                    assert(nStatesSet == (length(osimFields)-1));
 
                     %%
                     %The values in the sto file are only valid to 6 decimal
@@ -250,9 +258,42 @@ for indexDataDir = 1:1:length(dataDirContents)
                     %to satisfy the constraints in the model. Here we
                     %polish the state up to a higher precision.
                     %%
+                    modelStateBefore=modelState;
+
                     t0=tic;
                     model.assemble(modelState);
                     timeAssemble=toc(t0);
+
+                    %%
+                    % Check that the assembly step did not make any big
+                    % changes: done only during debugging.
+                    %%
+                    flag_checkAssembly = 0;
+                    if(flag_checkAssembly==1)
+                        for i=1:1:length(motColumnToStateMapping.motIndex)
+                            stateName = osimStateNames{motColumnToStateMapping.stateIndex(i)}; 
+                            fieldName = osimFields{ motColumnToStateMapping.motIndex(i) };                        
+
+                            stateValueBefore = ...
+                                double(...
+                                    model.getStateVariableValue(...
+                                    modelStateBefore,...
+                                    stateName));
+
+                            stateValueAfter = ...
+                                double(...
+                                    model.getStateVariableValue(...
+                                    modelState,...
+                                    stateName));
+                                    
+                            fprintf('%e\t%e\t%e\t%s\n',...
+                                abs(stateValueBefore-stateValueAfter),...
+                                stateValueBefore,...
+                                stateValueAfter,...
+                                fieldName);
+                        end
+                    end
+
                     %%
                     %Before we can evaluate positions and orientations we
                     %need to evaluate all of the kinematic transforms in
@@ -261,6 +302,7 @@ for indexDataDir = 1:1:length(dataDirContents)
                     t0=tic;
                     model.realizePosition(modelState);
                     timeRealizePosition=toc(t0);
+
                     %%
                     %Now what we want is:
                     %  
