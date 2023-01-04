@@ -392,10 +392,10 @@ for indexDataDir = 1:1:length(dataDirContents)
 
                     
                     %Sanity checks
-                    X_Skull_T1 = ...
+                    X_T1_Skull = ...
                         bodySkull.findTransformBetween(modelState,...
                                                        jointAuxT1JntParentFrame);
-                    [r1K1, R1K]=convertOpenSimTransformToMatrices(X_Skull_T1);   
+                    [r1K1, R1K]=convertOpenSimTransformToMatrices(X_T1_Skull);   
 
                     if(indexTime==1)
                         r1KG_test = rGKG-rG1G;
@@ -437,10 +437,10 @@ for indexDataDir = 1:1:length(dataDirContents)
 
                     if(indexTime==1)
 
-                        X_Skull_C7 =...
+                        X_C7_Skull =...
                             bodySkull.findTransformBetween(modelState,...
                                                            bodyC7);                    
-                        [r7K7, R7K]=convertOpenSimTransformToMatrices(X_Skull_C7);
+                        [r7K7, R7K]=convertOpenSimTransformToMatrices(X_C7_Skull);
                         
                         X_G_C7 = bodyC7.getTransformInGround(modelState);
                         [rG7G,RG7]=convertOpenSimTransformToMatrices(X_G_C7);
