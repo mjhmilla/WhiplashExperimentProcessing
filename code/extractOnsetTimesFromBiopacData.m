@@ -1,46 +1,9 @@
-function success = extractOnsetTimesFromBiopacData(participantLabel,subdir,slashChar,messageLevel)
+function success = extractOnsetTimesFromBiopacData(...
+                        inputFolder,outputFolder,codeFolder,...
+                        slashChar,messageLevel)
 
 success = 0;
-%clc;
-%close all;
-%clear all;
 
-
-
-% / : linux
-% \ : windows
-%slashChar = '/';
-
-%%
-%Check that we're in the correct directory
-%%
-localPath = pwd();
-idxSlash = strfind(localPath,slashChar);
-parentFolder      = localPath(1,idxSlash(end):end);
-grandParentFolder = localPath(1,idxSlash(end-1):idxSlash(end));
-assert(contains(parentFolder,'code'));
-assert(contains(grandParentFolder,'WhiplashExperimentProcessing'));
-
-codeFolder=localPath;
-
-
-%%
-% Folders
-%%
-addpath(['algorithms',slashChar]);
-addpath(['inputOutput',slashChar]);
-
-
-%For a simple example here I'll manually set the folder that we 
-%are going to process. For the real script these folders will
-%be processed one-by-one
-%mvcFolder = ['../data/00_raw/mvc/biopac/02May2022_Monday/',...
-%               '2022_05_02_Subject1_0830'];
-
-%participantLabel = 'participant02';
-
-carBiopacFolder = ['..',slashChar,'data',slashChar,participantLabel,subdir];
-outputBiopacFolder = ['..',slashChar,'output',slashChar,participantLabel,subdir];
 
 %%
 % Biopac information
@@ -243,14 +206,14 @@ plotVertMarginCm     = 1.5;
 %%
 
 %Go to the car-biopac-folder 
-cd(carBiopacFolder);
-filesCarBiopacFolder = dir();
+cd(inputFolder);
+filesinputFolder = dir();
 cd(codeFolder);
 
 %Go and find the first *.mat file 
 indexMatFile = [];
-for indexFile=1:1:length(filesCarBiopacFolder)
-    if(contains(filesCarBiopacFolder(indexFile).name,'.mat'))
+for indexFile=1:1:length(filesinputFolder)
+    if(contains(filesinputFolder(indexFile).name,'.mat'))
         indexMatFile = [indexMatFile;indexFile];
     end
 end
@@ -259,7 +222,7 @@ for idxFile = 1:1:length(indexMatFile)
 
     close all;
 
-    fileName=filesCarBiopacFolder(indexMatFile(idxFile,1)).name;
+    fileName=filesinputFolder(indexMatFile(idxFile,1)).name;
     idxSpace = strfind(fileName,' ');
     idxPoint =strfind(fileName,'.');
     assert(length(idxPoint)==1);
@@ -268,12 +231,12 @@ for idxFile = 1:1:length(indexMatFile)
 
 
     if(messageLevel > 0)
-        fprintf('  Loading: \t%s\n',filesCarBiopacFolder(indexMatFile(idxFile,1)).name);
+        fprintf('  Loading: \t%s\n',filesinputFolder(indexMatFile(idxFile,1)).name);
     end
 
-    carBiopacDataRaw = load([filesCarBiopacFolder(indexMatFile(idxFile,1)).folder,...
+    carBiopacDataRaw = load([filesinputFolder(indexMatFile(idxFile,1)).folder,...
                          slashChar,...
-                          filesCarBiopacFolder(indexMatFile(idxFile,1)).name]);
+                          filesinputFolder(indexMatFile(idxFile,1)).name]);
     
     %Keep the original raw file on hand for plotting
     carBiopacData=carBiopacDataRaw;
@@ -679,7 +642,7 @@ for idxFile = 1:1:length(indexMatFile)
             end
         end
         
-        fileNameOnset = sprintf([outputBiopacFolder,'%stable_Onset_EMG%i_Acc%i.csv'],...
+        fileNameOnset = sprintf([outputFolder,'%stable_Onset_EMG%i_Acc%i.csv'],...
                                     slashChar,flag_EMGProcessing,flag_AccProcessing);
         
         fid = fopen(fileNameOnset,'w');
@@ -714,7 +677,7 @@ for idxFile = 1:1:length(indexMatFile)
             figOnset = configPlotExporter( figOnset,...
                                             pageWidthCm,...
                                             pageHeightCm);
-            print('-dpng', sprintf([outputBiopacFolder,'%sfig_Onset_EMG%i_Acc%i_%s.png'],...
+            print('-dpng', sprintf([outputFolder,'%sfig_Onset_EMG%i_Acc%i_%s.png'],...
                             slashChar,flag_EMGProcessing,flag_AccProcessing,...
                             fileNameNoSpace));
             here=1;

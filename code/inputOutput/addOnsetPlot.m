@@ -13,7 +13,8 @@ subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
 
 
 idxMin = 1;
-idxMax = signalWindowInterval(1,2);
+idxMax = length(timeV);
+%idxMax = signalWindowInterval(1,2);
 
 timeMin = min(timeV);
 timeMax = max(timeV);
