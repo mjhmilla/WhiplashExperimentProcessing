@@ -1,6 +1,8 @@
 function success = extractOnsetTimesFromBiopacData(...
                         inputFolder,outputFolder,codeFolder,...
-                        slashChar,messageLevel)
+                        slashChar,messageLevel,...
+                        flag_removeECGPeaksFromEMGData,...
+                        flag_plotOnset, flag_writeOnsetDataToFile)
 
 success = 0;
 
@@ -35,7 +37,9 @@ flag_AccProcessing =0;
 %Ecg removal settings
 %%
 %Parameters for Norman's special ECG removal algorithm: 
-% window & highpass filter
+% 1. Identify ECG peaks in the ECG channels
+% 2. For each peak, go to the each of the EMG signals and high pass
+%    filter the data that is +/- the windowDuration
 ecgRemovalFilterWindowParams = struct('windowDuration',0.16,...
                                       'highpassFilterFrequency',20);
 
@@ -116,7 +120,8 @@ switch flag_AccProcessing
     case 0
         peakMaximumThresholdScalingAcc    = 0.5;
     case 1
-        peakMaximumThresholdScalingAcc    = 0.5;noiseSubWindowIntervals
+        peakMaximumThresholdScalingAcc    = 0.5;
+        
     case 2
         peakMaximumThresholdScalingAcc    = 0.5;
 end 
@@ -218,28 +223,30 @@ for indexFile=1:1:length(filesinputFolder)
     end
 end
 
-for idxFile = 1:1:length(indexMatFile)
+for indexFile = 1:1:length(indexMatFile)
 
     close all;
 
-    fileName=filesinputFolder(indexMatFile(idxFile,1)).name;
+    fileName = filesinputFolder(indexMatFile(indexFile,1)).name;
     idxSpace = strfind(fileName,' ');
-    idxPoint =strfind(fileName,'.');
+    idxPoint = strfind(fileName,'.');
     assert(length(idxPoint)==1);
     fileNameNoSpace = fileName(1,1:(idxPoint-1));
     fileNameNoSpace(1,idxSpace) = '_';
 
 
     if(messageLevel > 0)
-        fprintf('  Loading: \t%s\n',filesinputFolder(indexMatFile(idxFile,1)).name);
+        fprintf('  Loading: \t%s\n',filesinputFolder(indexMatFile(indexFile,1)).name);
     end
 
-    carBiopacDataRaw = load([filesinputFolder(indexMatFile(idxFile,1)).folder,...
+    carBiopacDataRaw = load([filesinputFolder(indexMatFile(indexFile,1)).folder,...
                          slashChar,...
-                          filesinputFolder(indexMatFile(idxFile,1)).name]);
+                          filesinputFolder(indexMatFile(indexFile,1)).name]);
     
     %Keep the original raw file on hand for plotting
     carBiopacData=carBiopacDataRaw;
+
+
     timeV = [];
     dt=(1/carBiopacSampleFrequency);
     duration = (size(carBiopacData.data,1)/carBiopacSampleFrequency);
@@ -313,7 +320,7 @@ for idxFile = 1:1:length(indexMatFile)
     %%
     % Remove the ECG waveforms from the EMG data
     %%
-    if(flag_EMGProcessing >= 1)
+    if(flag_EMGProcessing >= 1 && flag_removeECGPeaksFromEMGData)
         carBiopacData = removeEcgFromEmg(carBiopacData, emgKeyword, ecgKeyword,...
             ecgRemovalFilterWindowParams, ...
             carBiopacSampleFrequency);
@@ -351,7 +358,6 @@ for idxFile = 1:1:length(indexMatFile)
     
     
     indexSubplot=1;
-    flag_plotOnset =1;
     if(flag_plotOnset==1)
         figOnset = figure;
     end
@@ -642,35 +648,37 @@ for idxFile = 1:1:length(indexMatFile)
             end
         end
         
-        fileNameOnset = sprintf([outputFolder,'%stable_Onset_EMG%i_Acc%i.csv'],...
-                                    slashChar,flag_EMGProcessing,flag_AccProcessing);
-        
-        fid = fopen(fileNameOnset,'w');
-        fprintf(fid,'Name,DelayCarToEMG,DelayHeadToEMG\n');
-
-        if(messageLevel > 0)
-            fprintf('\n  Channel\t\tCar-Onset\tHead-Onset\n');
-        end
-        for i=1:1:size(onsetData,1)
-            for j=1:1:size(onsetData,2)
-                %print to file
-                fprintf(fid,'%s,',onsetData{i,j});        
-                %print to screen
-                if(messageLevel > 0)                
-                    if(j <= 1 || i==1)
-                        fprintf('  %s\t',onsetData{i,j});        
-                    else
-                        fprintf('  %s\t',onsetData{i,j});
+        if(flag_writeOnsetDataToFile==1)
+            fileNameOnset = sprintf([outputFolder,'%stable_Onset_EMG%i_Acc%i.csv'],...
+                                        slashChar,flag_EMGProcessing,flag_AccProcessing);
+            
+            fid = fopen(fileNameOnset,'w');
+            fprintf(fid,'Name,DelayCarToEMG,DelayHeadToEMG\n');
+    
+            if(messageLevel > 0)
+                fprintf('\n  Channel\t\tCar-Onset\tHead-Onset\n');
+            end
+            for i=1:1:size(onsetData,1)
+                for j=1:1:size(onsetData,2)
+                    %print to file
+                    fprintf(fid,'%s,',onsetData{i,j});        
+                    %print to screen
+                    if(messageLevel > 0)                
+                        if(j <= 1 || i==1)
+                            fprintf('  %s\t',onsetData{i,j});        
+                        else
+                            fprintf('  %s\t',onsetData{i,j});
+                        end
                     end
                 end
+                fprintf(fid,'\n');
+                if(messageLevel > 0)
+                    fprintf('\n');
+                end
+            
             end
-            fprintf(fid,'\n');
-            if(messageLevel > 0)
-                fprintf('\n');
-            end
-        
+            fclose(fid);
         end
-        fclose(fid);
         
         if(flag_plotOnset==1)
         

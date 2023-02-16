@@ -1,9 +1,9 @@
 function [  peakBlocksRaw,...
             peakBlocksFiltered,...
             noiseSubWindowIntervals,...
-            data,...
-            dataFilt] = ...
-            findOnsetUsingNoiseModel(data, ...
+            dataZeroMedian,...
+            dataZeroMedianFiltered] = ...
+            findOnsetUsingNoiseModel(dataInput, ...
                                     signalWindow,...
                                     noiseWindow,...
                                     numberOfNoiseSubWindows,...
@@ -24,7 +24,7 @@ assert(length(signalWindow)==2,...
      'entries: the beginning and end of the window']);
 
 assert(signalWindow(1,1) > 2);
-assert(signalWindow(1,2) < (length(data)-1));
+assert(signalWindow(1,2) < (length(dataInput)-1));
 
 windowStart = signalWindow(1,1);
 windowEnd   = signalWindow(1,2);
@@ -37,14 +37,14 @@ signalIndices   = [signalWindow(1,1):1:signalWindow(1,2)]';
 % Transform the data for single-sided analysis
 %%
 
-dataMedian=median(data);
-data = data-dataMedian;
-data = abs(data);
+dataMedian=median(dataInput);
+dataZeroMedian = dataInput-dataMedian;
+dataZeroMedian = abs(dataZeroMedian);
 
-dataFilt = [];
+dataZeroMedianFiltered = [];
 if(isnan(lowFrequencyFilterCutoff)==0)
     [b,a] = butter(2,lowFrequencyFilterCutoff/(sampleFrequency*0.5),'low');
-    dataFilt = filtfilt(b,a,data);
+    dataZeroMedianFiltered = filtfilt(b,a,dataZeroMedian);
 end
 
 %%
@@ -69,8 +69,8 @@ indexLowNoiseEnd  =0;
 
 for i=1:1:numberOfNoiseSubWindows
     indexA = (i-1)*indexDelta + 1;
-    indexB = min(indexA + indexDelta,length(data));
-    meanAB = mean(data(indexA:1:indexB,1));
+    indexB = min(indexA + indexDelta,length(dataZeroMedian));
+    meanAB = mean(dataZeroMedian(indexA:1:indexB,1));
 
     if(meanAB < noiseSubWindowLowMean)
         noiseSubWindowLowMean=meanAB;
@@ -88,10 +88,10 @@ noiseSubWindowIntervals = [];
 
 for i=1:1:numberOfNoiseSubWindows
     indexA = (i-1)*indexDelta + 1;
-    indexB = min(indexA + indexDelta, length(data));
+    indexB = min(indexA + indexDelta, length(dataZeroMedian));
 
-    [p,h] = ranksum(data(indexA:1:indexB,1),...
-                data(indexLowNoiseStart:1:indexLowNoiseEnd,1),...
+    [p,h] = ranksum(dataZeroMedian(indexA:1:indexB,1),...
+                dataZeroMedian(indexLowNoiseStart:1:indexLowNoiseEnd,1),...
                 'alpha', 0.1);
 
     %If the hypothesis that the medians are equal cannot be rejected
@@ -109,10 +109,10 @@ end
 
 
 %%
-%Evaluate the distribution of the data
+%Evaluate the distribution of the dataZeroMedian
 %%
 
-[noisePdfNum,noisePdfEdges] = histcounts(data(noiseIndices),...
+[noisePdfNum,noisePdfEdges] = histcounts(dataZeroMedian(noiseIndices),...
     'Normalization','probability','BinMethod','sturges');
 
 noiseModelCoeff = fitProbabilityDistribution(...
@@ -124,7 +124,7 @@ noiseFiltPdfNum     = [];
 noiseFiltPdfEdges   = [];
 
 if(isnan(lowFrequencyFilterCutoff)==0)
-    [noiseFiltPdfNum,noiseFiltPdfEdges] = histcounts(dataFilt(noiseIndices),...
+    [noiseFiltPdfNum,noiseFiltPdfEdges] = histcounts(dataZeroMedianFiltered(noiseIndices),...
         'Normalization','probability','BinMethod','sturges');
     
     noiseFiltModelCoeff = fitProbabilityDistribution(...
@@ -137,12 +137,12 @@ if(flag_plotDetails==1)
     figDebug=figure;
 
     subplot(3,1,1);
-    plot(data,'Color',[1,1,1].*0.5,'DisplayName','Signal');    
+    plot(dataZeroMedian,'Color',[1,1,1].*0.5,'DisplayName','Signal');    
     hold on; 
     
     %Analysis window
-    minVal = min(data(signalIndices,1));
-    maxVal = max(data(signalIndices,1));
+    minVal = min(dataZeroMedian(signalIndices,1));
+    maxVal = max(dataZeroMedian(signalIndices,1));
     indexLeft = signalWindow(1,1);
     indexRight= signalWindow(1,2);
 
@@ -165,7 +165,7 @@ if(flag_plotDetails==1)
     
 
     if(isnan(lowFrequencyFilterCutoff)==0)
-        plot(dataFilt,'k','DisplayName','Lpf Signal');
+        plot(dataZeroMedianFiltered,'k','DisplayName','Lpf Signal');
         hold on;
     end
 
@@ -206,7 +206,7 @@ if(flag_plotDetails==1)
     ylabel('Probability');
     title('Noise Probability Function');
 
-    %If the data has been filtered, also
+    %If the dataZeroMedian has been filtered, also
     if(isnan(lowFrequencyFilterCutoff)==0)
 
         %%
@@ -257,22 +257,22 @@ peakProbability = [];
 for i=1:1:length(signalIndices)
     idx=signalIndices(i,1);
 
-    vF = data(idx,1);
+    vF = dataZeroMedian(idx,1);
     pF = 0;
     mF = 0;
     if(isnan(lowFrequencyFilterCutoff)==0)
         if(isempty(noiseFiltModelCoeff.localMaxima)==0)
             mF = max(noiseFiltModelCoeff.localMaxima);
         end
-        if(isempty(dataFilt)==0)
-            vF = dataFilt(idx,1);    
+        if(isempty(dataZeroMedianFiltered)==0)
+            vF = dataZeroMedianFiltered(idx,1);    
             pF = evaluateProbabilityDistribution(...
                     vF,noiseFiltModelCoeff.coeff,...
                     typeOfNoiseModel);
         end
     end
 
-    v = data(idx,1);
+    v = dataZeroMedian(idx,1);
     p = evaluateProbabilityDistribution(...
                 v,noiseModelCoeff.coeff,...
                 typeOfNoiseModel);
@@ -310,12 +310,12 @@ peakBlocksFiltered = condenseIndexSeriesToBlocks(peakIntervalFiltered, ...
 
 if(flag_plotDetails==1)
     subplot(3,1,1);
-        plot(dataFilt,'k');
+        plot(dataZeroMedianFiltered,'k');
         hold on;
         v0 = 0;
-        v1 = max(dataFilt);
+        v1 = max(dataZeroMedianFiltered);
 
-        plot(peakIntervalRaw(:), data(peakIntervalRaw(:),1),'.m');
+        plot(peakIntervalRaw(:), dataZeroMedian(peakIntervalRaw(:),1),'.m');
         hold on;
         
         for i=1:1:size(peakBlocksRaw,1)
@@ -325,7 +325,7 @@ if(flag_plotDetails==1)
             hold on;
         end
 
-        plot(peakIntervalFiltered(:), data(peakIntervalFiltered(:),1),'.c');
+        plot(peakIntervalFiltered(:), dataZeroMedian(peakIntervalFiltered(:),1),'.c');
         hold on;
 
         for i=1:1:size(peakBlocksFiltered,1)
