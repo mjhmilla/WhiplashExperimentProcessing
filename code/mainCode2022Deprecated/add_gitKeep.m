@@ -5,7 +5,7 @@ clear all;
 gitKeepPath = pwd;
 gitKeepPath = fullfile(gitKeepPath,'.gitkeep');
 
-cd('output2023');
+cd('output2022');
 outputPaths = dir('**/*.*') ;
 
 
