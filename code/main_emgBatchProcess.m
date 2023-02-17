@@ -183,7 +183,7 @@ switch(flag_dataSet)
 		outputSetFolder=fullfile(whiplashFolder,'output2023');
 		numberOfParticipants=28;    
 		disp('Important: the TRU_L and TRU_R are really SCP_L and SCP_R');
-
+        disp('Important: the head accelerometer was never attached to the head. (Matts fault)');
 		[biopacParameters, biopacKeywords, ...
  		 biopacChannels, biopacIndices] = getBiopacMetaData();		
 	otherwise
