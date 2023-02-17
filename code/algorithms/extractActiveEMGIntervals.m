@@ -17,7 +17,7 @@ for i=1:1:size(carBiopacData.labels,1)
     if(contains(carBiopacData.labels(i,:),biopacKeywords.emg))
 
 
-        assert(isempty(biopacSignalIntervals(biopacIndices.indexAccCarX).intervals)==0,...
+        assert(isempty(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices)==0,...
                    ['Error: The car did not accelerate. The code should not be able to',...
                      ' evaluate the EMG onsets']);
 
@@ -25,19 +25,19 @@ for i=1:1:size(carBiopacData.labels,1)
         %and the head.
 
 
-        indexAccMin = min(biopacSignalIntervals(biopacIndices.indexAccCarX).intervals(1,:));
-        indexAccMax = max(biopacSignalIntervals(biopacIndices.indexAccCarX).intervals(1,:));                
+        indexAccMin = min(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices(1,:));
+        indexAccMax = max(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices(1,:));                
 
         %If the head also moves, include its movement in definining
         %the minimum and maximum times.
-        if(isempty(biopacSignalIntervals(biopacIndices.indexAccHeadX).intervals)==0)
+        if(isempty(biopacSignalIntervals(biopacIndices.indexAccHeadX).intervalIndices)==0)
             indexAccMin = ...
-                min( biopacSignalIntervals(biopacIndices.indexAccCarX).intervals(1,:),...
-                     biopacSignalIntervals(biopacIndices.indexAccHeadX).intervals(1,:));
+                min( biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices(1,:),...
+                     biopacSignalIntervals(biopacIndices.indexAccHeadX).intervalIndices(1,:));
     
             indexAccMax = ...
-                max( biopacSignalIntervals(biopacIndices.indexAccCarX).intervals(1,:),...
-                     biopacSignalIntervals(biopacIndices.indexAccHeadX).intervals(1,:));
+                max( biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices(1,:),...
+                     biopacSignalIntervals(biopacIndices.indexAccHeadX).intervalIndices(1,:));
         end
 
         timeAccMin = timeV(indexAccMin,1);
@@ -75,8 +75,17 @@ for i=1:1:size(carBiopacData.labels,1)
 
 
         if(isempty(peakIntervalRaw)==0)
-            biopacSignalIntervals(i).intervals   = ...
+            biopacSignalIntervals(i).intervalIndices   = ...
                 [peakIntervalRaw(1,:)];
+            biopacSignalIntervals(i).intervalIndices   = ...
+                timeV(peakIntervalRaw(1,:)')';
+
+            if(isempty(peakIntervalRaw)==0)
+                i0 = peakIntervalRaw(1,1);
+                i1 = peakIntervalRaw(1,2);
+                biopacSignalIntervals(i).intervalMaximumValue = ...
+                    max(abs(carBiopacData.data(i0:1:i1,i)));
+            end
         end
 
         if(flag_plotOnset)

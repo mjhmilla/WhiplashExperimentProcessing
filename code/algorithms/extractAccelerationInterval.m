@@ -43,7 +43,7 @@ for i=[biopacIndices.indexAccCarX,biopacIndices.indexAccHeadX]
             else
                 %Head
                 minNoiseIdx = 1;
-                maxNoiseIdx = biopacSignalIntervals(biopacIndices.indexAccCarX).intervals(1,1);
+                maxNoiseIdx = biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices(1,1);
                 noiseWindowIndices = [minNoiseIdx, maxNoiseIdx];
 
                 maxSignalIdx = round(0.99.*length(accDeltaNorm));
@@ -105,8 +105,18 @@ for i=[biopacIndices.indexAccCarX,biopacIndices.indexAccHeadX]
             %Update the 3 indicies of this accelerometer with the
             %intervals that contain the peak acceleration
             for k=1:1:3
-                biopacSignalIntervals(i+k-1).intervals   = ...
+                biopacSignalIntervals(i+k-1).intervalIndices   = ...
                     peakIntervalFilteredUpd;
+                biopacSignalIntervals(i+k-1).intervalTimes   = ...
+                    timeV(peakIntervalFilteredUpd')';
+
+                if(isempty(peakIntervalFilteredUpd)==0)
+                    i0 = peakIntervalFilteredUpd(1,1);
+                    i1 = peakIntervalFilteredUpd(1,2);
+                    biopacSignalIntervals(i).intervalMaximumValue = ...
+                        max(abs(carBiopacData.data(i0:1:i1,i)));
+                end
+
             end
 
 
