@@ -11,3 +11,5 @@
 4. MVC right/left: should be MVC (pulling to the) left, and was done last.
 
 You can perform a sanity check by looking at the file numbers: they will increase from MVC back, MVC right, MVC front, finally to MVC back. 
+
+2. It appears that the head accelerometer was never attached to the head: the onset is very similar to the car (in contrast to the May 2022 collection) and the normalized magnitude is nearly identical, like it was sitting in the car. I believe there is a good chance that this is my fault. Though I could have sworn that I attached the accelerometer for the first few participants, perhaps I forgot. If I then forgot when I showed the hiwi's how to do this task ... well then we would end up with the entire data set not having the accelerometer attached to the head.
