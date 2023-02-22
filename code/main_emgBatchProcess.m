@@ -176,16 +176,13 @@ switch(flag_dataSet)
 		outputSetFolder=fullfile(whiplashFolder,'output2022');        
 		numberOfParticipants=21;
 
-		[biopacParameters, biopacKeywords, ...
-		 biopacChannels, biopacIndices] = getBiopacMetaData();
 	case 1
 		dataSetFolder = fullfile(whiplashFolder,'data2023');
 		outputSetFolder=fullfile(whiplashFolder,'output2023');
 		numberOfParticipants=28;    
 		disp('Important: the TRU_L and TRU_R are really SCP_L and SCP_R');
         disp('Important: the head accelerometer was never attached to the head. (Matts fault)');
-		[biopacParameters, biopacKeywords, ...
- 		 biopacChannels, biopacIndices] = getBiopacMetaData();		
+		
 	otherwise
 		assert(0,'Error: flag_dataSet must be 0 or 1');
 end
@@ -327,12 +324,6 @@ for indexParticipant=participantFirst:1:participantLast
         %carBiopacDataRaw is left in its un processed form.
         carBiopacDataRaw = load(fileNameBiopacData);
 
-        %Make the time vector
-    	timeV = [];
-    	dt=(1/biopacParameters.sampleFrequencyHz);
-    	duration = (size(carBiopacDataRaw.data,1)/biopacParameters.sampleFrequencyHz);
-    	timeV = [dt:dt:duration]';
-
         if(messageLevel > 1)
             fprintf('    Channel labels:\n');
             for i=1:1:size(carBiopacDataRaw.labels,1)
@@ -341,22 +332,14 @@ for indexParticipant=participantFirst:1:participantLast
         end
 
         %Get the indices that correspond to the known biopac channel names
-		biopacFields = fields(biopacIndices);   
-		
-        for i=1:1:size(carBiopacDataRaw.labels,1)
-            found=0;
-            for j=1:1:length(biopacChannels)        
-                if(contains(carBiopacDataRaw.labels(i,:),biopacChannels{j}) ...
-                        && found==0)
-                    biopacIndices.(biopacFields{j})=i;
-                    found=1;
-                elseif((contains(carBiopacDataRaw.labels(i,:),biopacChannels{j}) ...
-                        && found==1))
-                    assert(0,'Error: label keywords are not unique');
-                end
-        
-            end
-        end	
+		[biopacParameters, biopacKeywords, ...
+ 		 biopacChannels, biopacIndices] = getBiopacMetaData(carBiopacDataRaw);        
+
+        %Make the time vector
+    	timeV = [];
+    	dt=(1/biopacParameters.sampleFrequencyHz);
+    	duration = (size(carBiopacDataRaw.data,1)/biopacParameters.sampleFrequencyHz);
+    	timeV = [dt:dt:duration]';        
 
         %Check that the time unit is ms
         assert(contains(carBiopacDataRaw.isi_units,'ms'));

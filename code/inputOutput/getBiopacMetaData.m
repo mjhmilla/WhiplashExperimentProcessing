@@ -1,5 +1,5 @@
 function [biopacParameters, biopacKeywords, ...
-		  biopacChannels, biopacIndices] = getBiopacMetaData()
+		  biopacChannels, biopacIndices] = getBiopacMetaData(biopacData)
 
 
     biopacParameters.sampleFrequencyHz=2000;%Hz
@@ -48,4 +48,27 @@ function [biopacParameters, biopacKeywords, ...
       'indexAccHeadY',0,...
       'indexAccHeadZ',0,...
       'indexTrigger',0,...                            
-      'indexForce',0);
+      'indexForce',0,...
+      'indicesOfEmgData', [1:1:6],...
+      'indicesOfCarAccerometerData',[8:10],...
+      'indicesOfHeadAccerometerData',[12:14]);
+
+if(isempty(biopacData)==0)
+    %Get the indices that correspond to the known biopac channel names
+    biopacFields = fields(biopacIndices);   
+    
+    for i=1:1:size(biopacData.labels,1)
+        found=0;
+        for j=1:1:length(biopacChannels)        
+            if(contains(biopacData.labels(i,:),biopacChannels{j}) ...
+                    && found==0)
+                biopacIndices.(biopacFields{j})=i;
+                found=1;
+            elseif((contains(biopacData.labels(i,:),biopacChannels{j}) ...
+                    && found==1))
+                assert(0,'Error: label keywords are not unique');
+            end
+    
+        end
+    end	    
+end

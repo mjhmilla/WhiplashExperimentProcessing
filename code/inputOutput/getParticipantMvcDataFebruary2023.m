@@ -1,4 +1,4 @@
-function [participantMvcData, indicesMvcData]=...
+function [participantMvcData, indicesMvcData, namesMvcData]=...
      getParticipantMvcDataFebruary2023(participantId)
 
 
@@ -9,7 +9,7 @@ indicesMvcData.indexBendRight=2;
 indicesMvcData.indexFlexion  =3;
 indicesMvcData.indexBendLeft =4;
 
-
+namesMvcData = {'Extension','Right','Flexion','Left'};
 
 
 switch participantId
