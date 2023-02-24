@@ -3,9 +3,9 @@ function biopacData = removeEcgFromEmg(biopacData,emgKeyword,ecgKeyword,...
 
 %Window & filter
 ecgWindowDuration       = ...
-    ecgRemovalFilterWindowParams.windowDuration;
+    ecgRemovalFilterWindowParams.windowDurationInSeconds;
 highpassFilterFrequency = ...
-    ecgRemovalFilterWindowParams.highpassFilterFrequency;
+    ecgRemovalFilterWindowParams.highpassFilterFrequencyInHz;
 
 ecgWindowSamples  = round(ecgWindowDuration*sampleRate/2);
 

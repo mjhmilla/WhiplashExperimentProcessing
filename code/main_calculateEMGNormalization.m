@@ -1,9 +1,9 @@
-%% main_CelineUndChrista
+%% main_CelineUndChrista 
 clc
 clear all
 close all;
 
-indexParticipant=1;
+indexParticipant=14;
 
 flag_dataSet = 1;
 % 0: 2022 data set
@@ -25,11 +25,9 @@ flag_plotData = 1;
 %  windowDurationInSeconds
 %  highpassFilterFrequencyInHz
 %
-ecgRemovalFilterWindowParams = struct('windowDuration',0.16,... 
-                                      'highpassFilterFrequency',20);
- %   removeEcgFromEmg & calcEmgEnvelope
- 
- 
+ecgRemovalFilterWindowParams = struct('windowDurationInSeconds',0.16,...
+                                      'highpassFilterFrequencyInHz',20);
+
 %This is used for all low pass filters that are applied to the EMG data
 %in evaluating the EMG envelope and in any other processing.
 %
