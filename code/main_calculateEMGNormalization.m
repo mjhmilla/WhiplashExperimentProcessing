@@ -33,7 +33,7 @@ ecgRemovalFilterWindowParams = struct('windowDurationInSeconds',0.16,...
 %
 % CC: What would have been a better variable name for
 % lowFrequencyFilterCutoff?
-lowFrequencyFilterCutoffInHz = 10;%Hz
+lowFrequencyFilterCutoffInHz = 10;
 
 
 %%
@@ -372,21 +372,6 @@ end
 %    'Right', biopacSignalNorm(2,:),...
 %    'Flexion', biopacSignalNorm(3,:),...
 %    'Left', biopacSignalNorm(4,:));
-                        
-   %% plots zur Kontrolle (Sterno links in Extension)
-%    figure(1)
-%     hold on
-%    plot(mvcBiopacDataRaw.data(:,1),'r');
-%    plot(mvcBiopacDataNoEcg.data(:,1), 'b');
-%    
-%    figure(2)
-%    plot(mvcBiopacDataNoEcg.data(:,1), 'b');
-%    plot(mvcBiopacDataEnv.data(:,1),'r','linewidth',1)
-   
-
-
-   
-
    
                         
                         

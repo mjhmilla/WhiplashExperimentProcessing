@@ -236,6 +236,7 @@ for indexParticipant=participantFirst:1:participantLast
 	        participantMetaData = ...
                  getParticipantDataFebruary2023(indexParticipant);
 
+
             [participantMvcMetaData, indicesMvcData] =...
             	 getParticipantMvcDataFebruary2023(indexParticipant);
 
