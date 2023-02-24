@@ -3,7 +3,7 @@ function [participantMvcData, indicesMvcData, namesMvcData]=...
 
 
 participantMvcData = [];
-participantMvcData.ignore = [];
+participantMvcData.ignore = []; 
 
 indicesMvcData.indexExtension=1;
 indicesMvcData.indexBendRight=2;
