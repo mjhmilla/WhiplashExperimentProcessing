@@ -233,13 +233,13 @@ for indexParticipant=participantFirst:1:participantLast
             %  and consider filling in the data for the rest of the participants
             %  if you need this information
 
-	        participantData = ...
+	        participantMetaData = ...
                  getParticipantDataFebruary2023(indexParticipant);
 
-            [participantMvcData, indicesMvcData] =...
+            [participantMvcMetaData, indicesMvcData] =...
             	 getParticipantMvcDataFebruary2023(indexParticipant);
 
-            participantCarData= ...
+            participantCarMetaData= ...
                getParticipantCarDataFebruary2023(indexParticipant);
 
 		otherwise
@@ -249,26 +249,14 @@ for indexParticipant=participantFirst:1:participantLast
 
 
     %%
-    % Christa & Celine: a possible programming exercise (a few days of work)
-    %
-    % Extract maximum processed EMG activity from the MVC trials
-    %
-    % I. Get the biopac files from the MVC trials
-    % II. Write a function to evaluate the normalization coefficient for each 
-    %    muscle.
-    %
-    % If you would like to try this see the text in
-    %   WhiplashExperimentProcessing/README.txt
-    % with the title
-    %   'Extracting the EMG normalization coefficients from the MVC trials'
+    % Christa & Celine: load the participant's MVC data here
     %%
-
-	cd(inputFolders.mvcBiopac);    
-	filesInMvcBiopacFolder = dir();
-	cd(codeFolder);
-	
-
-    %%
+    %cd(outputFolders.common)
+    %load a list of all of the file names in this folder
+    %search for the one with emgMvcMaxOutput_participant##
+    %participantMvcData = load( emgMvcMaxOutput_participant## )
+    %cd(codeFolder)
+    
     %
     % Get the biopac files from the car
     %
@@ -299,6 +287,9 @@ for indexParticipant=participantFirst:1:participantLast
 
     for indexFile = 1:1:length(indexMatFile)
 
+        if(indexFile>=11)
+            here=1;
+        end
         
 		fileName = filesInCarBiopacFolder(indexMatFile(indexFile,1)).name;		
 
@@ -307,7 +298,7 @@ for indexParticipant=participantFirst:1:participantLast
         end	
 
 	    [trialCondition, trialBlock, flag_ignoreTrial] = ...
-            getTrialConditionAndBlock(fileName,participantCarData);
+            getTrialConditionAndBlock(fileName,participantCarMetaData);
 
         if(messageLevel > 0)
             strIgnore='';
@@ -323,6 +314,9 @@ for indexParticipant=participantFirst:1:participantLast
 
         %carBiopacDataRaw is left in its un processed form.
         carBiopacDataRaw = load(fileNameBiopacData);
+
+        %Christa & Celine: you can normalize the EMG signals from 
+        %the biopac data here.
 
         if(messageLevel > 1)
             fprintf('    Channel labels:\n');
