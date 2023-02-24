@@ -31,8 +31,8 @@ emgEnvelopeLowpassFilterFrequency   = lowFrequencyFilterCutoff;
 % 1. Identify ECG peaks in the ECG channels
 % 2. For each peak, go to the each of the EMG signals and high pass
 %    filter the data that is +/- the windowDuration
-ecgRemovalFilterWindowParams = struct('windowDuration',0.16,...
-                                      'highpassFilterFrequency',20);
+ecgRemovalFilterWindowParams = struct('windowDurationInSeconds',0.16,...
+                                      'highpassFilterFrequencyInHz',20);
 
 
 
