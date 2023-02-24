@@ -25,15 +25,17 @@ flag_plotData = 1;
 %  windowDurationInSeconds
 %  highpassFilterFrequencyInHz
 %
-ecgRemovalFilterWindowParams = struct('windowDuration',0.16,...
+ecgRemovalFilterWindowParams = struct('windowDuration',0.16,... 
                                       'highpassFilterFrequency',20);
-
+ %   removeEcgFromEmg & calcEmgEnvelope
+ 
+ 
 %This is used for all low pass filters that are applied to the EMG data
 %in evaluating the EMG envelope and in any other processing.
 %
 % CC: What would have been a better variable name for
 % lowFrequencyFilterCutoff?
-lowFrequencyFilterCutoff = 10;%Hz
+lowFrequencyFilterCutoffInHz = 10;
 
 
 %%
@@ -213,7 +215,7 @@ for indexDirections=1:height(mvcData.mvcFiles)
         %CC: Again, this is a numerical constant so it should be set at 
         %    the beginning of the script.
         %lowFrequencyFilterCutoff = 10;
-        emgEnvelopeLowpassFilterFrequency   = lowFrequencyFilterCutoff;
+        emgEnvelopeLowpassFilterFrequency   = lowFrequencyFilterCutoffInHz;
         
         %CC: This is going to be inefficient in terms of memory because
         %    Matlab has to figure out dynamically how to store everything
@@ -372,21 +374,6 @@ end
 %    'Right', biopacSignalNorm(2,:),...
 %    'Flexion', biopacSignalNorm(3,:),...
 %    'Left', biopacSignalNorm(4,:));
-                        
-   %% plots zur Kontrolle (Sterno links in Extension)
-%    figure(1)
-%     hold on
-%    plot(mvcBiopacDataRaw.data(:,1),'r');
-%    plot(mvcBiopacDataNoEcg.data(:,1), 'b');
-%    
-%    figure(2)
-%    plot(mvcBiopacDataNoEcg.data(:,1), 'b');
-%    plot(mvcBiopacDataEnv.data(:,1),'r','linewidth',1)
-   
-
-
-   
-
    
                         
                         
