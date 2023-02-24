@@ -2,7 +2,8 @@ function [participantMvcData, indicesMvcData, namesMvcData]=...
      getParticipantMvcDataFebruary2023(participantId)
 
 
-participantMvcData = [];
+participantMvcData = []; 
+
 
 indicesMvcData.indexExtension=1;
 indicesMvcData.indexBendRight=2;
@@ -109,7 +110,7 @@ switch participantId
             'Versuch00000023.mat',      'Versuch00000026.mat';...
             'Versuch00000030.mat',      'Versuch00000031.mat';...
             'Versuch00000033.mat',      'Versuch00000034.mat'};
-        
+
     case 9
         participantMvcData.id           = participantId;
         participantMvcData.mvcForceN    = [244, 223;...
@@ -121,6 +122,11 @@ switch participantId
             'Versuch00000045.mat',      'Versuch00000046.mat';...
             'Versuch00000048.mat',      'Versuch00000049.mat';...
             'Versuch00000051.mat',      'Versuch00000052.mat'};
+
+%        participantMvcData.ignore = ...
+%            struct('mvcFiles','Versuch00000041.mat',...
+%                   'biopacChannel', {'STR_R','TRO_L'});
+
         
     case 10   
         participantMvcData.id           = participantId;
@@ -172,12 +178,12 @@ switch participantId
         
     case 14 
         participantMvcData.id           = participantId;
-        participantMvcData.mvcForceN    = [170, 178;...
+        participantMvcData.mvcForceN    = [126, 142;...
                                                     95, 91;...
                                                     63, 66;...
                                                     69, 67];
         participantMvcData.mvcFiles     = ...
-            {'Versuch00000024.mat',     'Versuch00000025.mat';...
+            {'Versuch00000026.mat',     'Versuch00000027.mat';...
             'Versuch00000030.mat',      'Versuch00000031.mat';...
             'Versuch00000033.mat',      'Versuch00000034.mat';...
             'Versuch00000036.mat',      'Versuch00000038.mat'};
@@ -354,4 +360,35 @@ switch participantId
         assert(0, ['Error: particpantId is not within the range of 1-28,',...
             ' or the information for the requested participant has ',...
             'not yet been entered']);
+
+        
+%         for i=1:height(participantMvcData.mvcFiles)
+%             for j=1:width(participantMvcData.mvcFiles)
+%                 if participantMvcData.mvcFiles(i,j) <= A 
+%                     %trial should be ignored
+%                 end
+%             end
+%         end
 end
+%% CC
+%Next, there's something else that should be added to getParticipantMvcData2023: 
+%a field to ignore a file. If you run the script and look at 
+%output2023/participant01/mvc/biopac/fig_MVC_TRU_R.png the left trials should 
+%be ignored: it looks like the electrode fell off, or something weird happened.
+
+%With a trial like this I would like to be able to set an 'ignore' flag somewhere in 
+%getParticipantMvcData2023 so that the values used in this trial is not used. 
+%Think about how you might do that.
+
+%ideas
+        % if all emg data are under a certain threshold for one trial it should
+        % be ignored
+                %maybe calculate the mean or look at the max amplitude
+
+
+
+
+
+
+
+
