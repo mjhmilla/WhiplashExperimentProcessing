@@ -369,7 +369,11 @@ for indexParticipant=participantFirst:1:participantLast
         %%        
 		
 		numberOfSignals = size(carBiopacDataRaw.data,2);
-        
+
+        if(exist('biopacSignalIntervals','var'))
+            clear('biopacSignalIntervals');
+        end
+
 		biopacSignalIntervals(numberOfSignals) = ...
             struct('intervalIndices',[],...
                     'intervalTimes',[],...
