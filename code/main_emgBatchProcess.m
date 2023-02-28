@@ -255,6 +255,15 @@ for indexParticipant=participantFirst:1:participantLast
     %participantMvcData = load( emgMvcMaxOutput_participant## )
     %cd(codeFolder)
     
+    cd(outputFolders.common);
+    %load a list of all of the file names in this folder
+    outputAllParticipants = pwd();
+    filesInAllParticipants = dir(outputAllParticipants);
+    currentFile = ['emgMvcMaxOutput_', participantLabel,'.mat'];
+    %search for the one with emgMvcMaxOutput_participant##
+    participantMvcData = load(currentFile);
+    cd(codeFolder)
+    
     %
     % Get the biopac files from the car
     %
@@ -315,6 +324,39 @@ for indexParticipant=participantFirst:1:participantLast
 
         %Christa & Celine: you can normalize the EMG signals from 
         %the biopac data here.
+        
+        maxMvcData ...
+        = struct(...
+            'STR_L','',...
+            'STR_R','',...
+            'TRO_L','',...
+            'TRO_R','',...
+            'TRU_L','',...
+            'TRU_R','');
+        for indexMuscle=1:6
+            for indexDirection=1:4
+                directionAllValues=[participantMvcData.biopacSignalNorm(indexDirection, 1).max(indexMuscle),...
+                participantMvcData.biopacSignalNorm(indexDirection, 2).max(indexMuscle)];
+                muscleAllValues(1,indexDirection)=directionAllValues(1);
+                muscleAllValues(2,indexDirection)=directionAllValues(2);
+
+            end
+                muscleMax(indexMuscle)=max(muscleAllValues, [], 'all');
+                carBiopacDataNorm(:,indexMuscle)=carBiopacDataRaw.data(:,indexMuscle)./muscleMax(indexMuscle);
+
+        end
+        
+       maxMvcData ...
+        = struct(...
+            'STR_L',muscleMax(1),...
+            'STR_R',muscleMax(2),...
+            'TRO_L',muscleMax(3),...
+            'TRO_R',muscleMax(4),...
+            'TRU_L',muscleMax(5),...
+            'TRU_R',muscleMax(6));
+        
+        
+        %%
 
         if(messageLevel > 1)
             fprintf('    Channel labels:\n');
