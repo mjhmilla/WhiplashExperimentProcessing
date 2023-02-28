@@ -369,14 +369,20 @@ for indexParticipant=participantFirst:1:participantLast
         %%        
 		
 		numberOfSignals = size(carBiopacDataRaw.data,2);
-        if(exist('biopacSignalIntervals','var'))
-            clear('biopacSignalIntervals');
-        end
+        
 		biopacSignalIntervals(numberOfSignals) = ...
             struct('intervalIndices',[],...
                     'intervalTimes',[],...
                     'intervalMaximumValue',[],...
                     'flag_maximumValueExceedsThreshold',0);
+
+        %Initialize the structure.
+        for indexSignal=1:1:numberOfSignals
+            biopacSignalIntervals(numberOfSignals).intervalIndices=[];
+            biopacSignalIntervals(numberOfSignals).intervalTimes=[];
+            biopacSignalIntervals(numberOfSignals).intervalMaximumValue=[];
+            biopacSignalIntervals(numberOfSignals).flag_maximumValueExceedsThreshold = 0;
+        end
 
 		[biopacSignalIntervals,flag_carMoved,indexSubplot,figOnset] ...
                 = extractAccelerationInterval(...
