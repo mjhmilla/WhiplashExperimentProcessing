@@ -20,9 +20,12 @@ peakIntervalFiltered = [];
 noisePdf = [];
 
 assert(length(signalWindow)==2,...
-    ['Error: indicesOfWindow must contain 2 ',...
+    ['Error: signalWindow must contain 2 ',...
      'entries: the beginning and end of the window']);
 
+if(signalWindow(1,2) >= (length(dataInput)-1))
+    here=1;
+end
 assert(signalWindow(1,1) > 2);
 assert(signalWindow(1,2) < (length(dataInput)-1));
 

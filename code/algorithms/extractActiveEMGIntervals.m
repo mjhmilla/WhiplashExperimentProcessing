@@ -7,6 +7,7 @@ function [biopacSignalIntervals,indexSubplot, figOnset] ...
                         biopacIndices,...  
                         biopacKeywords,...
                         biopacParameters,...
+                        flag_carMoved,...
                         flag_plotOnset,...
                         indexSubplot,...
                         subPlotPanel,...
@@ -14,23 +15,24 @@ function [biopacSignalIntervals,indexSubplot, figOnset] ...
                         figOnset)
 
 for i=1:1:size(carBiopacData.labels,1)
-    if(contains(carBiopacData.labels(i,:),biopacKeywords.emg))
-
-
-        assert(isempty(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices)==0,...
-                   ['Error: The car did not accelerate. The code should not be able to',...
-                     ' evaluate the EMG onsets']);
+    if(contains(carBiopacData.labels(i,:),biopacKeywords.emg))        
+        %assert(isempty(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices)==0,...
+        %           ['Error: The car did not accelerate. The code should not be able to',...
+        %             ' evaluate the EMG onsets']);
 
         %Get the acceleration window associated with both the car
         %and the head.
-
-
-        indexAccMin = min(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices(1,:));
-        indexAccMax = max(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices(1,:));                
+        indexAccMin = find(timeV > 10, 1 );
+        indexAccMax = find(timeV > max(timeV)-onsetDetectionSettings.maximumAcceptableOnsetTime-1, 1 );
+        if(isempty(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices)==0)
+            indexAccMin = min(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices(1,:));
+            indexAccMax = max(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices(1,:));                
+        end
 
         %If the head also moves, include its movement in definining
         %the minimum and maximum times.
-        if(isempty(biopacSignalIntervals(biopacIndices.indexAccHeadX).intervalIndices)==0)
+        if(isempty(biopacSignalIntervals(biopacIndices.indexAccHeadX).intervalIndices)==0 ...
+                && isempty(biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices)==0)
             indexAccMin = ...
                 min( biopacSignalIntervals(biopacIndices.indexAccCarX).intervalIndices(1,:),...
                      biopacSignalIntervals(biopacIndices.indexAccHeadX).intervalIndices(1,:));
@@ -40,8 +42,8 @@ for i=1:1:size(carBiopacData.labels,1)
                      biopacSignalIntervals(biopacIndices.indexAccHeadX).intervalIndices(1,:));
         end
 
-        timeAccMin = timeV(indexAccMin,1);
-        timeAccMax = timeV(indexAccMax,1);        
+        timeAccMin      = timeV(indexAccMin,1);
+        timeAccMax      = timeV(indexAccMax,1);        
         timeWindowStart = timeAccMin+onsetDetectionSettings.minimumAcceptableOnsetTime;
         timeWindowEnd   = timeAccMax+onsetDetectionSettings.maximumAcceptableOnsetTime; 
         timeWindowEnd   = min(max(timeV),timeWindowEnd);
@@ -74,19 +76,22 @@ for i=1:1:size(carBiopacData.labels,1)
                 flag_plotOnsetAlgorithmDetails);
 
 
-        if(isempty(peakIntervalRaw)==0)
+        biopacSignalIntervals(i).flag_maximumValueExceedsThreshold = 0;
+        if(isempty(peakIntervalRaw)==0 && flag_carMoved == 1)
             biopacSignalIntervals(i).intervalIndices   = ...
                 [peakIntervalRaw(1,:)];
             biopacSignalIntervals(i).intervalTimes   = ...
                 timeV(peakIntervalRaw(1,:)')';
-
+            
             if(isempty(peakIntervalRaw)==0)
                 i0 = peakIntervalRaw(1,1);
                 i1 = peakIntervalRaw(1,2);
                 biopacSignalIntervals(i).intervalMaximumValue = ...
-                    max(abs(carBiopacData.data(i0:1:i1,i)));
+                    max(abs(dataZeroMedianFiltered(i0:1:i1,1)));
+                biopacSignalIntervals(i).flag_maximumValueExceedsThreshold =1;
             end
         end
+   
 
         if(flag_plotOnset)
             dataLabel = carBiopacData.labels(i,:);
@@ -99,6 +104,14 @@ for i=1:1:size(carBiopacData.labels,1)
             row = ceil(indexSubplot/maxPlotCols);
             col = max(1,indexSubplot-(row-1)*maxPlotCols);
             
+            colorLine=colorOnset;
+            if(biopacSignalIntervals(i).flag_maximumValueExceedsThreshold==0)
+                colorLine = [0,0,0];
+                %signalWindowIndices = [];
+                %noiseBlocks = [];
+                peakIntervalFiltered = [];
+            end
+
             subplot('Position',reshape(subPlotPanel(row,col,:),1,4));  
 
             [figOnset,indexSubplot] = ...                        
@@ -108,15 +121,14 @@ for i=1:1:size(carBiopacData.labels,1)
                                 signalWindowIndices,...
                                 noiseBlocks,...
                                 peakIntervalFiltered,...
-                                colorOnset,...
+                                colorLine,...
                                 dataLabel,...
                                 figOnset, ...
                                 subPlotPanel, ...
                                 indexSubplot);   
-
             here=1;
 
-        end
+        end        
     end
 
 end
