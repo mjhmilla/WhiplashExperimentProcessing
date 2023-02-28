@@ -11,14 +11,11 @@ flag_plotOnset = 1;
 messageLevel = 1;
 
 flag_runOneParticipant = 1;
-runThisParticipant=1;
+runThisParticipant     = 1;
 
 %%
 %output flags
 %%
-
-flag_writeTabularDataToFile = 1;
-
 
 lowFrequencyFilterCutoff = 10;%Hz
 %%
