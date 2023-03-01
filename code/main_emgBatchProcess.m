@@ -249,11 +249,14 @@ for indexParticipant=participantFirst:1:participantLast
     %%
     % Christa & Celine: load the participant's MVC data here
     %%
-    %cd(outputFolders.common)
+    cd(outputFolders.common);
     %load a list of all of the file names in this folder
+    outputAllParticipants = pwd();
+    filesInAllParticipants = dir(outputAllParticipants);
+    currentFile = ['emgMvcMaxOutput_', participantLabel,'.mat'];
     %search for the one with emgMvcMaxOutput_participant##
-    %participantMvcData = load( emgMvcMaxOutput_participant## )
-    %cd(codeFolder)
+    participantMvcData = load(currentFile);
+    cd(codeFolder)
     
     cd(outputFolders.common);
     %load a list of all of the file names in this folder
@@ -323,6 +326,7 @@ for indexParticipant=participantFirst:1:participantLast
         carBiopacDataRaw = load(fileNameBiopacData);
 
         %Christa & Celine: you can normalize the EMG signals from 
+<<<<<<< HEAD
         %the biopac data here.
         
         maxMvcData ...
@@ -357,7 +361,24 @@ for indexParticipant=participantFirst:1:participantLast
         
         
         %%
+=======
+        %the biopac data here
+ %% height(participantMvcData.biopacSignalNorm)
+          meanMvcData ...
+        = struct(...
+            'Extension','',...
+            'Right','',...
+            'Flexion','',...
+            'Left','');
+        for i= 1:2
+            for j = 1:6
+            max(i,j) = participantMvcData.biopacSignalNorm(1, i).max(j);
+            meanMvcData.Extension()= mean(max(i));
+            end
+        end 
+>>>>>>> f456327efc9674c0a67d1edf3a4a4f48284fbfcd
 
+%%
         if(messageLevel > 1)
             fprintf('    Channel labels:\n');
             for i=1:1:size(carBiopacDataRaw.labels,1)

@@ -3,6 +3,28 @@ clc
 clear all
 close all;
 
+
+%Check that Matlab is currently in the data directory
+localPath=pwd();
+[parentFolderPath,parentFolder] = fileparts(localPath);
+
+assert(contains(parentFolderPath,'WhiplashExperimentProcessing'));
+
+whiplashFolder= parentFolderPath;
+dataSetFolder = fullfile(whiplashFolder,'data2023');
+
+% Get a list of all files and folders in this folder
+files = dir(dataSetFolder);
+% Get a logical vector that tells which is a directory
+dirFlags = [files.isdir];
+% Extract only those that are directories
+foldersInData2023 = files(dirFlags);
+% Get only the folder names into a cell array
+numberOfParticipants = {foldersInData2023(3:end).name};  
+
+% 
+for indexParticipant = 1:1%length(numberOfParticipants)
+flag_dataSet = 1;
 % 0: 2022 data set
 % 1: 2023 data set
 flag_dataSet = 1;
