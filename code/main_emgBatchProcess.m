@@ -174,10 +174,20 @@ switch(flag_dataSet)
 		outputSetFolder=fullfile(whiplashFolder,'output2022');        
 		numberOfParticipants=21;
 
+        firstMuscleBiopacIndex = 1;
+        lastMuscleBiopacIndex  = 6;
+
+        numberOfMuscles = lastMuscleBiopacIndex-firstMuscleBiopacIndex+1;
 	case 1
 		dataSetFolder = fullfile(whiplashFolder,'data2023');
 		outputSetFolder=fullfile(whiplashFolder,'output2023');
 		numberOfParticipants=28;    
+
+        firstMuscleBiopacIndex = 1;
+        lastMuscleBiopacIndex  = 6;
+        
+        numberOfMuscles = lastMuscleBiopacIndex-firstMuscleBiopacIndex+1;
+
 		disp('Important: the TRU_L and TRU_R are really SCP_L and SCP_R');
         disp('Important: the head accelerometer was never attached to the head. (Matts fault)');
 		
@@ -325,61 +335,9 @@ for indexParticipant=participantFirst:1:participantLast
 
         %carBiopacDataRaw is left in its un processed form.
         carBiopacDataRaw = load(fileNameBiopacData);
-
-        %Christa & Celine: you can normalize the EMG signals from 
-<<<<<<< HEAD
-        %the biopac data here.
-        
-        maxMvcData ...
-        = struct(...
-            'STR_L','',...
-            'STR_R','',...
-            'TRO_L','',...
-            'TRO_R','',...
-            'TRU_L','',...
-            'TRU_R','');
-        for indexMuscle=1:6
-            for indexDirection=1:4
-                directionAllValues=[participantMvcData.biopacSignalNorm(indexDirection, 1).max(indexMuscle),...
-                participantMvcData.biopacSignalNorm(indexDirection, 2).max(indexMuscle)];
-                muscleAllValues(1,indexDirection)=directionAllValues(1);
-                muscleAllValues(2,indexDirection)=directionAllValues(2);
-
-            end
-                muscleMax(indexMuscle)=max(muscleAllValues, [], 'all');
-                carBiopacDataNorm(:,indexMuscle)=carBiopacDataRaw.data(:,indexMuscle)./muscleMax(indexMuscle);
-
-        end
-        
-       maxMvcData ...
-        = struct(...
-            'STR_L',muscleMax(1),...
-            'STR_R',muscleMax(2),...
-            'TRO_L',muscleMax(3),...
-            'TRO_R',muscleMax(4),...
-            'TRU_L',muscleMax(5),...
-            'TRU_R',muscleMax(6));
-        
-        
+             
         %%
-=======
-        %the biopac data here
- %% height(participantMvcData.biopacSignalNorm)
-          meanMvcData ...
-        = struct(...
-            'Extension','',...
-            'Right','',...
-            'Flexion','',...
-            'Left','');
-        for i= 1:2
-            for j = 1:6
-            max(i,j) = participantMvcData.biopacSignalNorm(1, i).max(j);
-            meanMvcData.Extension()= mean(max(i));
-            end
-        end 
->>>>>>> f456327efc9674c0a67d1edf3a4a4f48284fbfcd
-
-%%
+        %%
         if(messageLevel > 1)
             fprintf('    Channel labels:\n');
             for i=1:1:size(carBiopacDataRaw.labels,1)
@@ -416,6 +374,60 @@ for indexParticipant=participantFirst:1:participantLast
                             biopacKeywords.emg, ...
                             emgEnvelopeLowpassFilterFrequency, ...
                             biopacParameters.sampleFrequencyHz);
+
+        %Christa & Celine: you can normalize the EMG signals from 
+        %the biopac data here.
+
+        % normalizeEmg(carBiopacDataEnv, ..
+        %              participantMvcData,...
+        %              biopacIndices,...
+        %              biopacKeywords);
+        %
+        carBiopacDataNorm = carBiopacDataEnv;
+
+        flag_plotNormDebugData=0;
+        if(flag_plotNormDebugData==1)
+            figNormDebugData=figure;
+        end
+        for indexMuscle=firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
+
+            directionAllValues = [];
+            for indexDirection=1:1:size(participantMvcData.biopacSignalNorm,1)
+
+                directionRowVector = ...
+                   [participantMvcData.biopacSignalNorm(indexDirection, 1).max(indexMuscle),...
+                    participantMvcData.biopacSignalNorm(indexDirection, 2).max(indexMuscle)];
+
+                directionAllValues=[directionAllValues;...
+                                    directionRowVector];
+
+
+            end
+                muscleMax(indexMuscle)=max(directionAllValues, [], 'all');
+                carBiopacDataNorm.data(:,indexMuscle) = ...
+                    carBiopacDataNorm.data(:,indexMuscle)./muscleMax(indexMuscle);
+                if(flag_plotNormDebugData==1)
+                    figure(figNormDebugData);
+                    subplot(2,3,indexMuscle-firstMuscleBiopacIndex+1);
+                    lineColor=[0,0,1];
+                    if(min(carBiopacDataNorm.data(:,indexMuscle))<=0 || ...
+                       max(carBiopacDataNorm.data(:,indexMuscle))>=1.25)
+                        lineColor=[1,0,0];
+                    end
+
+                    plot(timeV, carBiopacDataNorm.data(:,indexMuscle),...
+                        'Color',lineColor);
+                    hold on;
+                    xlabel('Time (s)');
+                    ylabel('Norm. EMG (mvc)');
+                    muscleName = biopacChannels{indexMuscle};
+                    i0 = strfind(muscleName,'_');
+                    muscleName(i0)=' ';
+                    title(muscleName);
+                    box off;
+                    axis tight;
+                end
+        end        
 
         indexSubplot=1;
         if(flag_plotOnset==1)
@@ -493,6 +505,7 @@ for indexParticipant=participantFirst:1:participantLast
             = extractActiveEMGIntervals(...                       
                     timeV,...
                     carBiopacDataNoEcg,... 
+                    carBiopacDataNorm,...
                     biopacSignalIntervals,...
                     onsetDetectionSettings,...
                     biopacIndices,...  
