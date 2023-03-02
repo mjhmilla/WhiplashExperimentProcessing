@@ -22,9 +22,6 @@ foldersInData2023 = files(dirFlags);
 % Get only the folder names into a cell array
 numberOfParticipants = {foldersInData2023(3:end).name};  
 
-% 
-for indexParticipant = 1:1%length(numberOfParticipants)
-flag_dataSet = 1;
 % 0: 2022 data set
 % 1: 2023 data set
 flag_dataSet = 1;
