@@ -18,7 +18,7 @@ function [biopacSignalIntervals,flag_carMoved,indexSubplot,figOnset] ...
 flag_carMoved=0;
 
 for i=[biopacIndices.indexAccCarX,biopacIndices.indexAccHeadX]
-
+    
     %Identify signal onset times from the norm of the acceleration
     accDelta        = carBiopacData.data(:,[i:1:(i+2)]);
     accDelta        = accDelta-median(accDelta);

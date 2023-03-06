@@ -30,8 +30,8 @@ hold on;
 
            
 
-yLimMin = min(dataRaw);
-yLimMax = max(dataRaw);
+yLimMin = min(0,min(dataFiltered));
+yLimMax = max([max(dataRaw),max(dataFiltered)]);
 
 if(isempty(noiseModelWindows)==0)
     for k=1:1:size(noiseModelWindows,1)   
