@@ -4,7 +4,7 @@ clear all;
 
 % 0: 2022 data set
 % 1: 2023 data set
-flag_dataSet = 1;
+flag_dataSet   = 1;
 flag_plotOnset = 1;
 
 
@@ -13,11 +13,11 @@ messageLevel = 1;
 minimumTrialTime            = 1;
 startWithThisParticipant    = 1;
 
-flag_runOneParticipant      = 0;
-runThisParticipant          = 8;
+flag_runOneParticipant      = 0;%1
+runThisParticipant          = 0;%8
 
-flag_runOneTrail            = 0;
-runThisTrial                = 23;
+flag_runOneTrail            = 0;%1
+runThisTrial                = 0;%23
 
 %%
 %output flags
