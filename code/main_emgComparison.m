@@ -11,10 +11,12 @@ clear all;
 % 1: 2023 data set
 flag_dataSet    = 1;
 participantFirst= 1;
-participantLast = 1;
+participantLast = 28;
+
+percentileSet       = [0.05;0.25;0.5;0.75;0.95];
 
 %Input
-noDataNumber = 0;
+noDataNumber = -1;
 firstMuscleBiopacIndex=1;
 lastMuscleBiopacIndex=6;
 numberOfMuscles = lastMuscleBiopacIndex-firstMuscleBiopacIndex+1;
@@ -31,10 +33,34 @@ conditionsToCompare(numberOfConditions) ...
              'fileName'  ,      []);
 
 conditionsToCompare(1).condition='nominal';
-conditionsToCompare(1).direction='Forward';
+conditionsToCompare(1).carDirection='Forward';
 
 conditionsToCompare(2).condition='seatBack';
-conditionsToCompare(2).direction='Forward';
+conditionsToCompare(2).carDirection='Forward';
+
+% conditionsToCompare(1).condition='nominal';
+% conditionsToCompare(1).direction='Forward';
+
+% conditionsToCompare(2).condition='nominal';
+% conditionsToCompare(2).direction='Backward';
+% 
+% conditionsToCompare(3).condition='nominal';
+% conditionsToCompare(3).direction='Left';
+% 
+% conditionsToCompare(4).condition='nominal';
+% conditionsToCompare(4).direction='Right';
+
+% conditionsToCompare(5).condition='seatBack';
+% conditionsToCompare(5).direction='Forward';
+% 
+% conditionsToCompare(6).condition='seatBack';
+% conditionsToCompare(6).direction='Backward';
+% 
+% conditionsToCompare(7).condition='seatBack';
+% conditionsToCompare(7).direction='Left';
+% 
+% conditionsToCompare(8).condition='seatBack';
+% conditionsToCompare(8).direction='Right';
 
 %Local folders
 addpath('inputOutput');
@@ -69,138 +95,21 @@ end
 
 
 %% load the data from emgPipelineOutput_participantXX
-indexParticipant = participantFirst;
+
+dataParticipantConditions=compareConditions(participantFirst,participantLast,dataSetFolder,...
+    outputSetFolder,conditionsToCompare,firstMuscleBiopacIndex,...
+    lastMuscleBiopacIndex,numberOfMuscles,noDataNumber);
+
+here=1;
 
 
-strNum =num2str(indexParticipant);
-if(length(strNum)<2)
-    strNum = ['0',strNum];
-end
-participantLabel = ['participant',strNum];
-
-disp('----------------------------------------');
-disp(participantLabel);
-disp('----------------------------------------');
-
-
-[inputFolders,outputFolders]=getParticipantFolders(indexParticipant,...
-										dataSetFolder,outputSetFolder);
-                                    
-filesInAllParticipants  = dir(outputFolders.common);
-fileNameEmgPipelineOutput = ['emgPipelineOutput_', participantLabel,'.mat'];
-currentFile             = fullfile(outputFolders.common,...
-                                   fileNameEmgPipelineOutput);
-load(currentFile);
-%participantEmgData
-
+%% create struct/array for plot
+%should include all trials for all participants and muscles for one
+%condition
 
 
 
 %%
-
-
-for indexTrial=1:1:length(participantEmgData)
-
-    id                      = participantEmgData(indexTrial).id;
-
-    condition               = participantEmgData(indexTrial).condition;
-    carDirection            = participantEmgData(indexTrial).carDirection;
-    block                   = participantEmgData(indexTrial).block;
-    
-    biopacIndices           = participantEmgData(indexTrial).biopacIndices;
-    biopacSignalIntervals   = participantEmgData(indexTrial).biopacSignalIntervals;
-
-    flag_ignoreTrial        = participantEmgData(indexTrial).flag_ignoreTrial;
-    flag_carMoved           = participantEmgData(indexTrial).flag_carMoved;
-
-
-    if(isempty(id)==0)
-        disp([num2str(indexTrial),' ',condition,' ', carDirection,' ',...
-              num2str(flag_carMoved),' ',num2str(flag_ignoreTrial)]);
-        if(indexTrial==6)
-            here=1;
-        end
-
-        if(flag_carMoved==1 && flag_ignoreTrial == 0)
-            for indexCondition=1:1:length(conditionsToCompare)
-                
-                if(isempty(conditionsToCompare(indexCondition).columnNames)==1)
-                    conditionsToCompare(indexCondition).columnNames = [];
-                    indexNames = fieldnames(participantEmgData(indexTrial).biopacIndices);
-                    for indexMuscle=firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-                        muscleName = indexNames{indexMuscle};
-                        i=strfind(muscleName,'x');
-                        muscleName = muscleName(1,(i+1):end);
-                        conditionsToCompare(indexCondition).columnNames = [...
-                            conditionsToCompare(indexCondition).columnNames,...
-                            {muscleName}];
-                    end
-                end
-
-                conditionCorrect = strcmp(conditionsToCompare(indexCondition).condition,...
-                                    condition);
-                directionCorrect = strcmp(conditionsToCompare(indexCondition).direction,...
-                                    carDirection);
-
-
-
-                if( conditionCorrect && directionCorrect)
-
-
-                    onsetRowVector              = ones(1,numberOfMuscles).*noDataNumber;
-                    maxMagnitudeRowVector       = ones(1,numberOfMuscles).*noDataNumber;
-                    indexParticipantRowVector   = ones(1,numberOfMuscles).*noDataNumber;
-                    indexTrialRowVector         = ones(1,numberOfMuscles).*noDataNumber;
-
-                    for indexMuscle=firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-
-
-                        if(biopacSignalIntervals(indexMuscle).flag_maximumValueExceedsThreshold ...
-                           && biopacSignalIntervals(biopacIndices.indexAccCarX).flag_maximumValueExceedsThreshold)
-
-                            onsetTime       = ...
-                                  biopacSignalIntervals(               indexMuscle).intervalTimes(1,1) ...
-                                - biopacSignalIntervals(biopacIndices.indexAccCarX).intervalTimes(1,1);
-    
-                            maxMagnitude    = biopacSignalIntervals(indexMuscle).intervalMaximumValue;
-        
-                            onsetRowVector(1,indexMuscle)           = onsetTime;
-                            maxMagnitudeRowVector(1,indexMuscle)    = maxMagnitude;
-                            indexParticipantRowVector(1,indexMuscle)=indexParticipant;
-                            indexTrialRowVector(1,indexMuscle)      = indexTrial;
-                        end
-                    end
-
-                    conditionsToCompare(indexCondition).times = [...
-                        conditionsToCompare(indexCondition).times; ...
-                        onsetRowVector];
-
-                    conditionsToCompare(indexCondition).magnitudes = [...
-                        conditionsToCompare(indexCondition).magnitudes;...
-                        maxMagnitudeRowVector];
-
-                    conditionsToCompare(indexCondition).participantIndex =[...
-                        conditionsToCompare(indexCondition).participantIndex;...
-                        indexParticipantRowVector];
-
-                    conditionsToCompare(indexCondition).trialIndex = [...
-                        conditionsToCompare(indexCondition).trialIndex;...
-                        indexTrialRowVector];
-
-                    conditionsToCompare(indexCondition).fileName = [...
-                        conditionsToCompare(indexCondition).fileName;...                        
-                        {participantEmgData(indexTrial).fileName}];
-
-                end
-            end
-        end
-    end
-
-    here=1;
-
-end
-
-
 %Build a plot that contains a box-whisker illustration for each 
 %condition
 

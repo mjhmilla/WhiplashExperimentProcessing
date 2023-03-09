@@ -5,10 +5,12 @@ function [participantMvcData, indicesMvcData]=...
 participantMvcData = [];
 
 
-indicesMvcData.indexFlexion  =1;
-indicesMvcData.indexExtension=2;
+indicesMvcData.indexExtension=4;
+indicesMvcData.indexBendRight=1;
+indicesMvcData.indexFlexion  =2;
 indicesMvcData.indexBendLeft =3;
-indicesMvcData.indexBendRight=4;
+
+namesMvcData = {'Right','Flexion','Left','Extension',};
 
 
 

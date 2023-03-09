@@ -2,10 +2,12 @@ clc;
 close all;
 clear all;
 
+opengl('save','software');
+
 % 0: 2022 data set
 % 1: 2023 data set
 flag_dataSet   = 1;
-flag_plotOnset = 1;
+flag_plotOnset = 0;
 
 
 messageLevel = 1;
@@ -13,8 +15,8 @@ messageLevel = 1;
 minimumTrialTime            = 1;
 startWithThisParticipant    = 1;
 
-flag_runOneParticipant      = 0;%1
-runThisParticipant          = 0;%8
+flag_runOneParticipant      = 1;%1
+runThisParticipant          = 2;%8
 
 flag_runOneTrail            = 0;%1
 runThisTrial                = 0;%23
@@ -448,6 +450,7 @@ for indexParticipant=participantFirst:1:participantLast
         end        
 
         indexSubplot=1;
+        figOnset = [];
         if(flag_plotOnset==1)
             figOnset = figure;
         end	    
