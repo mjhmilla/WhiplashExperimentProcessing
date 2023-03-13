@@ -11,7 +11,7 @@ clear all;
 % 1: 2023 data set
 flag_dataSet    = 1;
 participantFirst= 1;
-participantLast = 28;
+participantLast = 3;%28;
 
 percentileSet       = [0.05;0.25;0.5;0.75;0.95];
 

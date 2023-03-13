@@ -7,19 +7,34 @@ opengl('save','software');
 % 0: 2022 data set
 % 1: 2023 data set
 flag_dataSet   = 1;
-flag_plotOnset = 0;
+flag_plotOnset = 1;
 
 
 messageLevel = 1;
 
-minimumTrialTime            = 1;
-startWithThisParticipant    = 1;
+minimumTrialTime              = 1;
+startWithThisParticipant      = 1;
 
-flag_runOneParticipant      = 1;%1
-runThisParticipant          = 2;%8
+% Flags to process a specific part of the data set
+flag_runParticipantSubInterval  = 0;
+runThisParticipantFirst         = 0;
+runThisParticipantLast          = 0;
 
-flag_runOneTrail            = 0;%1
-runThisTrial                = 0;%23
+flag_runOneParticipant          = 0;
+runThisParticipant              = 0;
+
+flag_runOneTrial                = 0;
+runThisTrial                    = 0;
+
+assert(flag_runParticipantSubInterval && flag_runOneParticipant == 0,...
+       'Error: these two options (flag_runParticipantSubInterval and',...
+       ' flag_runOneParticipant) cannot be used at the same time.');
+
+if(flag_runOneTrial==1)
+    assert(flag_runOneParticipant == 1,...
+          ['Error: flag_runOneTrial can only be used if',...
+           ' flag_runOneParticipant is set to one']);
+end
 
 %%
 %output flags
@@ -29,6 +44,10 @@ lowFrequencyFilterCutoff = 10;%Hz
 %%
 %EMG Processing options
 %%
+flag_useFilteredSignal = 1;
+%0: The onset times of the raw EMG signal is returned
+%1: The onset times of the filtered EMG signal is returned (recommended)
+
 emgEnvelopeLowpassFilterFrequency   = lowFrequencyFilterCutoff;
 
 
@@ -215,6 +234,10 @@ if(flag_runOneParticipant==1)
     participantLast  = runThisParticipant;
 end
 
+if(flag_runParticipantSubInterval==1)
+    participantFirst = runThisParticipantFirst;
+    participantLast  = runThisParticipantLast;
+end
 
 
 for indexParticipant=participantFirst:1:participantLast
@@ -306,6 +329,10 @@ for indexParticipant=participantFirst:1:participantLast
 	end
 
     %Make the output struct
+    if(exist('participantEmgData','var'))
+        clear('participantEmgData');
+    end
+
     participantEmgData(length(filesInCarBiopacFolder)) ...
         = struct(...
             'id',indexParticipant,...
@@ -318,12 +345,46 @@ for indexParticipant=participantFirst:1:participantLast
             'flag_ignoreTrial',0,...
             'flag_carMoved', 0);
 
+    for indexFile = 1:1:length(participantEmgData)
+        participantEmgData(indexFile).id                    = indexParticipant;
+        participantEmgData(indexFile).fileName              = [];
+        participantEmgData(indexFile).condition             = [];
+        participantEmgData(indexFile).block                 = [];
+        participantEmgData(indexFile).carDirection          = [];
+        participantEmgData(indexFile).biopacSignalIntervals = [];
+        participantEmgData(indexFile).biopacIndices         = [];
+        participantEmgData(indexFile).flag_ignoreTrial      = 0;
+        participantEmgData(indexFile).flag_carMoved         = 0;
+    end
+
+
     indexTrialStart = 1;
     indexTrialEnd = length(indexMatFile);
 
-    if(flag_runOneTrail==1)
+    if(flag_runOneTrial==1)
         indexTrialStart=runThisTrial;
         indexTrialEnd = runThisTrial;
+    end
+    
+    %Scan the car meta data to see if any files are missing
+    for indexCondition = 1:1:length(participantCarMetaData.condition)
+        fileNumberStart = participantCarMetaData.blockFileNumbers(indexCondition,1);
+        fileNumberEnd   = participantCarMetaData.blockFileNumbers(indexCondition,2);
+        for indexFileNumber = fileNumberStart:1:fileNumberEnd
+            flag_fileFound = 0;
+            fileNoSubStr = [num2str(indexFileNumber),'.mat'];
+            for indexFile = 1:1:length(indexMatFile)
+                if(contains(filesInCarBiopacFolder(indexMatFile(indexFile,1)).name ,fileNoSubStr))
+                    flag_fileFound=1;
+                end
+            end
+            if(flag_fileFound==0)
+                fprintf('  Missing: file number %i of (%s, %s)\n',...
+                    indexFileNumber,...
+                    participantMvcData.condition{indexCondition,1},...
+                    participantMvcData.block{indexCondition,1});
+            end
+        end
     end
 
     for indexFile = indexTrialStart:1:indexTrialEnd
@@ -450,6 +511,7 @@ for indexParticipant=participantFirst:1:participantLast
         end        
 
         indexSubplot=1;
+        indexSubplotStart=1;        
         figOnset = [];
         if(flag_plotOnset==1)
             figOnset = figure;
@@ -482,6 +544,7 @@ for indexParticipant=participantFirst:1:participantLast
             biopacSignalIntervals(numberOfSignals).flag_maximumValueExceedsThreshold = 0;
         end
 
+
         if(length(timeV) > biopacParameters.sampleFrequencyHz*minimumTrialTime)
 		    [biopacSignalIntervals,flag_carMoved,indexSubplot,figOnset] ...
                     = extractAccelerationInterval(...
@@ -504,18 +567,39 @@ for indexParticipant=participantFirst:1:participantLast
         % Get the direction of the car's acceleration
         %
         %%
-            carDirection = 'Static';
-            if(flag_carMoved==1)
-        	    carDirection = extractCarAccelerationDirection(...
-						    carBiopacDataRaw,...
-                            biopacSignalIntervals,...
-                            biopacIndices);
-            end
-            if(messageLevel > 0)
-                fprintf('    %s\n',carDirection);
-            end	        
+        carDirection = 'Static';
+        if(flag_carMoved==1)
+    	    carDirection = extractCarAccelerationDirection(...
+					    carBiopacDataRaw,...
+                        biopacSignalIntervals,...
+                        biopacIndices);
+        end
+        if(messageLevel > 0)
+            fprintf('    %s\n',carDirection);
+        end	        
 
+        %%
+        %
+        % Add the trial meta data to the plots
+        %
+        %%%
+        figure(figOnset);
+        maxPlotCols = size(subPlotPanel,2);
+        maxPlotRows = size(subPlotPanel,1);
+        row = ceil(indexSubplotStart/maxPlotCols);
+        col = max(1,indexSubplotStart-(row-1)*maxPlotCols);
 
+        subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
+
+        trialMetaData = sprintf('Cond.: %s\nBlock: %s\nCarDir  : %s',...
+            trialCondition,trialBlock,carDirection);
+        text('Units', 'Normalized', 'Position', [0.05, 0.9], 'string',...
+            trialMetaData, 'FontSize',10,...
+            'HorizontalAlignment','left',...
+            'VerticalAlignment','top');
+        hold on;
+
+        here=1;
         %%
         % Onset: EMG
         %
@@ -533,6 +617,7 @@ for indexParticipant=participantFirst:1:participantLast
                         biopacIndices,...  
                         biopacKeywords,...
                         biopacParameters,...
+                        flag_useFilteredSignal,...
                         flag_carMoved,...
                         flag_plotOnset,...
                         indexSubplot,...
