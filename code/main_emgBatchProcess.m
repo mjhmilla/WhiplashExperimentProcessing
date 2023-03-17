@@ -26,7 +26,9 @@ runThisParticipant              = 0;
 flag_runOneTrial                = 0;
 runThisTrial                    = 0;
 
-assert(flag_runParticipantSubInterval && flag_runOneParticipant == 0,...
+
+assert((flag_runParticipantSubInterval && flag_runOneParticipant) == 0 ...
+    || (flag_runParticipantSubInterval || flag_runOneParticipant) == 0,...
        'Error: these two options (flag_runParticipantSubInterval and',...
        ' flag_runOneParticipant) cannot be used at the same time.');
 
@@ -56,7 +58,7 @@ emgEnvelopeLowpassFilterFrequency   = lowFrequencyFilterCutoff;
 % 2. For each peak, go to the each of the EMG signals and high pass
 %    filter the data that is +/- the windowDuration
 ecgRemovalFilterWindowParams = struct('windowDurationInSeconds',0.16,...
-                                      'highpassFilterFrequencyInHz',20);
+                                      'highpassFilterFrequencyInHz',50);
 
 
 
@@ -252,33 +254,23 @@ for indexParticipant=participantFirst:1:participantLast
     disp(participantLabel);
     disp('----------------------------------------');
 
-
-
     [inputFolders,outputFolders]=getParticipantFolders(indexParticipant,...
 										dataSetFolder,outputSetFolder);
 
-
 	switch(flag_dataSet)
 		case 0
-			%Note: this is currently empty
-			disp('Warning: not implemented getParticipantDataMay2022');
-            disp('Warning: not implemented getParticipantMvcDataMay2022');
-            disp('Warning: not implemented getParticipantCarDataMay2022');
+	        participantMetaData = ...
+                 getParticipantDataMay2022(indexParticipant);
+
+            [participantMvcMetaData, indicesMvcData] =...
+            	 getParticipantMvcDataMay2022(indexParticipant);
+
+            participantCarMetaData= ...
+               getParticipantCarDataMay2022(indexParticipant);            
 
 		case 1
-
-            %Christa & Celine: Look at 
-            %
-            %   inputOutput/getParticipantDataFebruary2023.m 
-            %   inputOutput/getParticipantMvcDataFebruary2023.m
-            %   inputOutput/getParticipantCarDataFebruary2023.m
-            %
-            %  and consider filling in the data for the rest of the participants
-            %  if you need this information
-
 	        participantMetaData = ...
                  getParticipantDataFebruary2023(indexParticipant);
-
 
             [participantMvcMetaData, indicesMvcData] =...
             	 getParticipantMvcDataFebruary2023(indexParticipant);
@@ -290,26 +282,11 @@ for indexParticipant=participantFirst:1:participantLast
 			assert(0,'Error: flag_dataSet must be 0 or 1');    
 	end
 
-
-
-    %%
-    % Christa & Celine: load the participant's MVC data here
-    %%
+    %
+    % Load the participant's processed MVC file
+    %
     cd(outputFolders.common);
-    %load a list of all of the file names in this folder
-    outputAllParticipants = pwd();
-    filesInAllParticipants = dir(outputAllParticipants);
     currentFile = ['emgMvcMaxOutput_', participantLabel,'.mat'];
-    %search for the one with emgMvcMaxOutput_participant##
-    participantMvcData = load(currentFile);
-    cd(codeFolder)
-    
-    cd(outputFolders.common);
-    %load a list of all of the file names in this folder
-    outputAllParticipants = pwd();
-    filesInAllParticipants = dir(outputAllParticipants);
-    currentFile = ['emgMvcMaxOutput_', participantLabel,'.mat'];
-    %search for the one with emgMvcMaxOutput_participant##
     participantMvcData = load(currentFile);
     cd(codeFolder)
     
@@ -321,10 +298,11 @@ for indexParticipant=participantFirst:1:participantLast
 	cd(codeFolder);    
 
     %Build a list of just the *.mat files
-	indexMatFile = [];
+	indexOfMatFilesInCarBiopacFolderList = [];
 	for indexFile=1:1:length(filesInCarBiopacFolder)
         if(contains(filesInCarBiopacFolder(indexFile).name,'.mat'))
-            indexMatFile = [indexMatFile;indexFile];
+            indexOfMatFilesInCarBiopacFolderList = ...
+                [indexOfMatFilesInCarBiopacFolderList;indexFile];
         end
 	end
 
@@ -333,74 +311,86 @@ for indexParticipant=participantFirst:1:participantLast
         clear('participantEmgData');
     end
 
-    participantEmgData(length(filesInCarBiopacFolder)) ...
+    
+    %Count the number of trials to analyze
+    numberOfTrialsToAnalyze = 0;
+    for i=1:1:size(participantCarMetaData.blockFileNumbers,1)
+
+        numberOfTrialsToAnalyze = ...
+            numberOfTrialsToAnalyze ...
+            + (  participantCarMetaData.blockFileNumbers(i,2) ...
+                -participantCarMetaData.blockFileNumbers(i,1) + 1);
+
+    end
+
+    %Define the struct
+    participantEmgData(numberOfTrialsToAnalyze) ...
         = struct(...
             'id',indexParticipant,...
+            'filePath','',...
             'fileName','',...
+            'fileNumber',0,...
             'condition','',...
             'block','',...
             'carDirection','',...             
             'biopacSignalIntervals',[],...
             'biopacIndices',[],...
+            'biopacProblemChannels',[],...
             'flag_ignoreTrial',0,...
             'flag_carMoved', 0);
 
+    %Initialize the struct
     for indexFile = 1:1:length(participantEmgData)
+
         participantEmgData(indexFile).id                    = indexParticipant;
+        participantEmgData(indexFile).filePath              = [];
         participantEmgData(indexFile).fileName              = [];
+        participantEmgData(indexFile).fileNumber            = 0;
         participantEmgData(indexFile).condition             = [];
         participantEmgData(indexFile).block                 = [];
         participantEmgData(indexFile).carDirection          = [];
         participantEmgData(indexFile).biopacSignalIntervals = [];
         participantEmgData(indexFile).biopacIndices         = [];
-        participantEmgData(indexFile).flag_ignoreTrial      = 0;
+        participantEmgData(indexFile).biopacProblemChannels = [];
+        participantEmgData(indexFile).flag_ignoreTrial      = 1;
         participantEmgData(indexFile).flag_carMoved         = 0;
+
     end
 
 
-    indexTrialStart = 1;
-    indexTrialEnd = length(indexMatFile);
+    
+    %Scan the car meta data to
+    % 1. Build a list of file names to process
+    % 2. Note any missing file names that are not in the  'ignoreTheseFileNumbers' list,
+    [participantEmgData, listOfFilesToProcess] ...
+        = updateParticipantEmgDataFileNames(participantEmgData, ...
+                                            filesInCarBiopacFolder, ...
+                                            indexOfMatFilesInCarBiopacFolderList, ...
+                                            participantCarMetaData);
+
 
     if(flag_runOneTrial==1)
-        indexTrialStart=runThisTrial;
-        indexTrialEnd = runThisTrial;
+        listOfFilesToProcess=listOfFilesToProcess(1,runThisTrial);
     end
+
+    for indexFileList = 1:1:length(listOfFilesToProcess)
+
+        indexFile = listOfFilesToProcess(1,indexFileList);
     
-    %Scan the car meta data to see if any files are missing
-    for indexCondition = 1:1:length(participantCarMetaData.condition)
-        fileNumberStart = participantCarMetaData.blockFileNumbers(indexCondition,1);
-        fileNumberEnd   = participantCarMetaData.blockFileNumbers(indexCondition,2);
-        for indexFileNumber = fileNumberStart:1:fileNumberEnd
-            flag_fileFound = 0;
-            fileNoSubStr = [num2str(indexFileNumber),'.mat'];
-            for indexFile = 1:1:length(indexMatFile)
-                if(contains(filesInCarBiopacFolder(indexMatFile(indexFile,1)).name ,fileNoSubStr))
-                    flag_fileFound=1;
-                end
-            end
-            if(flag_fileFound==0)
-                fprintf('  Missing: file number %i of (%s, %s)\n',...
-                    indexFileNumber,...
-                    participantMvcData.condition{indexCondition,1},...
-                    participantMvcData.block{indexCondition,1});
-            end
-        end
-    end
-
-    for indexFile = indexTrialStart:1:indexTrialEnd
-
-        if(indexFile>=11)
-            here=1;
-        end
-        
-		fileName = filesInCarBiopacFolder(indexMatFile(indexFile,1)).name;		
+        fileName = participantEmgData(indexFile).fileName;
 
         if(messageLevel > 0)
-            fprintf('  Loading: %i.\t%s\n',indexFile,filesInCarBiopacFolder(indexMatFile(indexFile,1)).name);
+            fprintf('  Loading: %i.\t%s\n',indexFileList,fileName);
         end	
 
 	    [trialCondition, trialBlock, flag_ignoreTrial] = ...
-            getTrialConditionAndBlock(fileName,participantCarMetaData);
+            getTrialConditionAndBlock(  fileName,...
+                                        participantCarMetaData);
+
+
+        participantEmgData(indexFile).condition=trialCondition;
+        participantEmgData(indexFile).block=trialBlock;
+        participantEmgData(indexFile).flag_ignoreTrial = flag_ignoreTrial;
 
         if(messageLevel > 0)
             strIgnore='';
@@ -411,8 +401,7 @@ for indexParticipant=participantFirst:1:participantLast
         end	        
 
         fileNameBiopacData = ...
-        	fullfile(filesInCarBiopacFolder(indexMatFile(indexFile,1)).folder,...
-        	filesInCarBiopacFolder(indexMatFile(indexFile,1)).name);
+        	fullfile(  participantEmgData(indexFile).filePath,fileName);
 
         %carBiopacDataRaw is left in its un processed form.
         carBiopacDataRaw = load(fileNameBiopacData);
@@ -436,116 +425,91 @@ for indexParticipant=participantFirst:1:participantLast
     	duration = (size(carBiopacDataRaw.data,1)/biopacParameters.sampleFrequencyHz);
     	timeV = [dt:dt:duration]';        
 
-        %Check that the time unit is ms
-        assert(contains(carBiopacDataRaw.isi_units,'ms'));
-        %Check that the time unit scaling is 0.5 - 0.5ms per data point, or 2000Hz
-        assert(carBiopacDataRaw.isi == 0.5);
-
-        %%
-        %Processing pipeline
-        %%
-
-        carBiopacDataNoEcg = removeEcgFromEmg(carBiopacDataRaw,...
-         					biopacKeywords.emg, ...
-         					biopacKeywords.ecg,...
-            				ecgRemovalFilterWindowParams, ...
-            				biopacParameters.sampleFrequencyHz);
-
-        carBiopacDataEnv = calcEmgEnvelope(carBiopacDataNoEcg,...
-                            biopacKeywords.emg, ...
-                            emgEnvelopeLowpassFilterFrequency, ...
-                            biopacParameters.sampleFrequencyHz);
-
-        %Christa & Celine: you can normalize the EMG signals from 
-        %the biopac data here.
-
-        % normalizeEmg(carBiopacDataEnv, ..
-        %              participantMvcData,...
-        %              biopacIndices,...
-        %              biopacKeywords);
-        %
-        carBiopacDataNorm = carBiopacDataEnv;
-
-        flag_plotNormDebugData=0;
-        if(flag_plotNormDebugData==1)
-            figNormDebugData=figure;
-        end
-        for indexMuscle=firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-
-            directionAllValues = [];
-            for indexDirection=1:1:size(participantMvcData.biopacSignalNorm,1)
-
-                directionRowVector = ...
-                   [participantMvcData.biopacSignalNorm(indexDirection, 1).max(indexMuscle),...
-                    participantMvcData.biopacSignalNorm(indexDirection, 2).max(indexMuscle)];
-
-                directionAllValues=[directionAllValues;...
-                                    directionRowVector];
+        
+        if(length(timeV) < biopacParameters.sampleFrequencyHz*minimumTrialTime ...
+                || flag_ignoreTrial==1)
+            %%
+            %
+            % We do not have enough data: save empty struct
+            %
+            %%
+            participantEmgData(indexFile).flag_ignoreTrial = 1;
 
 
+        else
+            %%
+            %
+            % We have enough data: process it
+            %
+            %%
+            
+            %Check that the time unit is ms
+            assert(contains(carBiopacDataRaw.isi_units,'ms'));
+            %Check that the time unit scaling is 0.5 - 0.5ms per data point, or 2000Hz
+            assert(carBiopacDataRaw.isi == 0.5);
+
+            %%
+            %Processing pipeline
+            %%
+
+            carBiopacDataNoEcg = removeEcgFromEmg(carBiopacDataRaw,...
+                                biopacKeywords.emg, ...
+                                biopacKeywords.ecg,...
+                                ecgRemovalFilterWindowParams, ...
+                                biopacParameters.sampleFrequencyHz);
+
+            carBiopacDataEnv = calcEmgEnvelope(carBiopacDataNoEcg,...
+                                biopacKeywords.emg, ...
+                                emgEnvelopeLowpassFilterFrequency, ...
+                                biopacParameters.sampleFrequencyHz);
+
+            flag_plotNormDebugData=0;
+            muscleIndices = [firstMuscleBiopacIndex:1:lastMuscleBiopacIndex];
+
+            carBiopacDataNorm = normalizeEMGData(carBiopacDataEnv,...
+                                    participantMvcData,...
+                                    muscleIndices,...
+                                    flag_plotNormDebugData);
+
+
+    
+
+            indexSubplot=1;
+            indexSubplotStart=1;        
+            figOnset = [];
+            if(flag_plotOnset==1)
+                figOnset = figure;
+            end     
+            %%
+            % Onset: accelerometers
+            %
+            %   Extract the onset time of the acceleration signal for the 
+            %   car and the head. Return the interval with the largest
+            %   acceleration that is greater than the minimum threshold
+            %%        
+            
+            numberOfSignals = size(carBiopacDataRaw.data,2);
+
+            if(exist('biopacSignalIntervals','var'))
+                clear('biopacSignalIntervals');
             end
-                muscleMax(indexMuscle)=max(directionAllValues, [], 'all');
-                carBiopacDataNorm.data(:,indexMuscle) = ...
-                    carBiopacDataNorm.data(:,indexMuscle)./muscleMax(indexMuscle);
-                if(flag_plotNormDebugData==1)
-                    figure(figNormDebugData);
-                    subplot(2,3,indexMuscle-firstMuscleBiopacIndex+1);
-                    lineColor=[0,0,1];
-                    if(min(carBiopacDataNorm.data(:,indexMuscle))<=0 || ...
-                       max(carBiopacDataNorm.data(:,indexMuscle))>=1.25)
-                        lineColor=[1,0,0];
-                    end
 
-                    plot(timeV, carBiopacDataNorm.data(:,indexMuscle),...
-                        'Color',lineColor);
-                    hold on;
-                    xlabel('Time (s)');
-                    ylabel('Norm. EMG (mvc)');
-                    muscleName = biopacChannels{indexMuscle};
-                    i0 = strfind(muscleName,'_');
-                    muscleName(i0)=' ';
-                    title(muscleName);
-                    box off;
-                    axis tight;
-                end
-        end        
+            biopacSignalIntervals(numberOfSignals) = ...
+                struct('intervalIndices',[],...
+                        'intervalTimes',[],...
+                        'intervalMaximumValue',[],...
+                        'flag_maximumValueExceedsThreshold',0);
 
-        indexSubplot=1;
-        indexSubplotStart=1;        
-        figOnset = [];
-        if(flag_plotOnset==1)
-            figOnset = figure;
-        end	    
-        %%
-        % Onset: accelerometers
-        %
-        %   Extract the onset time of the acceleration signal for the 
-        %   car and the head. Return the interval with the largest
-        %   acceleration that is greater than the minimum threshold
-        %%        
-		
-		numberOfSignals = size(carBiopacDataRaw.data,2);
-
-        if(exist('biopacSignalIntervals','var'))
-            clear('biopacSignalIntervals');
-        end
-
-		biopacSignalIntervals(numberOfSignals) = ...
-            struct('intervalIndices',[],...
-                    'intervalTimes',[],...
-                    'intervalMaximumValue',[],...
-                    'flag_maximumValueExceedsThreshold',0);
-
-        %Initialize the structure.
-        for indexSignal=1:1:numberOfSignals
-            biopacSignalIntervals(numberOfSignals).intervalIndices=[];
-            biopacSignalIntervals(numberOfSignals).intervalTimes=[];
-            biopacSignalIntervals(numberOfSignals).intervalMaximumValue=[];
-            biopacSignalIntervals(numberOfSignals).flag_maximumValueExceedsThreshold = 0;
-        end
+            %Initialize the structure.
+            for indexSignal=1:1:numberOfSignals
+                biopacSignalIntervals(numberOfSignals).intervalIndices=[];
+                biopacSignalIntervals(numberOfSignals).intervalTimes=[];
+                biopacSignalIntervals(numberOfSignals).intervalMaximumValue=[];
+                biopacSignalIntervals(numberOfSignals).flag_maximumValueExceedsThreshold = 0;
+            end
 
 
-        if(length(timeV) > biopacParameters.sampleFrequencyHz*minimumTrialTime)
+
 		    [biopacSignalIntervals,flag_carMoved,indexSubplot,figOnset] ...
                     = extractAccelerationInterval(...
                             timeV,...
@@ -562,50 +526,50 @@ for indexParticipant=participantFirst:1:participantLast
                             colorOnset,...                        
                             figOnset);
         
-        %%
-        %
-        % Get the direction of the car's acceleration
-        %
-        %%
-        carDirection = 'Static';
-        if(flag_carMoved==1)
-    	    carDirection = extractCarAccelerationDirection(...
-					    carBiopacDataRaw,...
-                        biopacSignalIntervals,...
-                        biopacIndices);
-        end
-        if(messageLevel > 0)
-            fprintf('    %s\n',carDirection);
-        end	        
+            %%
+            %
+            % Get the direction of the car's acceleration
+            %
+            %%
+            carDirection = 'Static';
+            if(flag_carMoved==1)
+        	    carDirection = extractCarAccelerationDirection(...
+    					    carBiopacDataRaw,...
+                            biopacSignalIntervals,...
+                            biopacIndices);
+            end
+            if(messageLevel > 0)
+                fprintf('    %s\n',carDirection);
+            end	        
 
-        %%
-        %
-        % Add the trial meta data to the plots
-        %
-        %%%
-        figure(figOnset);
-        maxPlotCols = size(subPlotPanel,2);
-        maxPlotRows = size(subPlotPanel,1);
-        row = ceil(indexSubplotStart/maxPlotCols);
-        col = max(1,indexSubplotStart-(row-1)*maxPlotCols);
+            %%
+            %
+            % Add the trial meta data to the plots
+            %
+            %%%
+            figure(figOnset);
+            maxPlotCols = size(subPlotPanel,2);
+            maxPlotRows = size(subPlotPanel,1);
+            row = ceil(indexSubplotStart/maxPlotCols);
+            col = max(1,indexSubplotStart-(row-1)*maxPlotCols);
 
-        subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
+            subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
 
-        trialMetaData = sprintf('Cond.: %s\nBlock: %s\nCarDir  : %s',...
-            trialCondition,trialBlock,carDirection);
-        text('Units', 'Normalized', 'Position', [0.05, 0.9], 'string',...
-            trialMetaData, 'FontSize',10,...
-            'HorizontalAlignment','left',...
-            'VerticalAlignment','top');
-        hold on;
+            trialMetaData = sprintf('Cond.: %s\nBlock: %s\nCarDir  : %s',...
+                trialCondition,trialBlock,carDirection);
+            text('Units', 'Normalized', 'Position', [0.05, 0.9], 'string',...
+                trialMetaData, 'FontSize',10,...
+                'HorizontalAlignment','left',...
+                'VerticalAlignment','top');
+            hold on;
 
-        here=1;
-        %%
-        % Onset: EMG
-        %
-        %   Extract the onset time of the EMG signals that occur after the
-        %   acceleration onset
-        %%     
+            here=1;
+            %%
+            % Onset: EMG
+            %
+            %   Extract the onset time of the EMG signals that occur after the
+            %   acceleration onset
+            %%     
 
             [biopacSignalIntervals,indexSubplot,figOnset] ...
                 = extractActiveEMGIntervals(...                       
@@ -625,36 +589,41 @@ for indexParticipant=participantFirst:1:participantLast
                         colorOnset,...                        
                         figOnset);
 
-    
+            biopacProblemChannels = [];
+            if(isempty(participantCarMetaData.biopacProblems)==0)
+                for indexProblem=1:1:length(participantCarMetaData.biopacProblems)
+                    fileNumber = participantCarMetaData.biopacProblems(indexProblem).trialNumber;
+                    if(fileNumber == participantEmgData(indexFileToProcess).fileNumber)
+                        biopacProblemChannels = participantEmgData(indexFileToProcess).channels;
+                    end                    
+                end
+            end
     
             %Save the data to a struct
-            participantEmgData(indexFile) ...
-            = struct(...
-                'id',           indexParticipant,...
-                'fileName',     fileName,...
-                'condition',    trialCondition,...
-                'block',        trialBlock,...
-                'carDirection', carDirection,...             
-                'biopacSignalIntervals',biopacSignalIntervals,...
-                'biopacIndices',biopacIndices,...
-                'flag_ignoreTrial',flag_ignoreTrial,...
-                'flag_carMoved',   flag_carMoved);
-    
-            %Replace spaces in the file name with '_'
-            fileName = filesInCarBiopacFolder(indexMatFile(indexFile,1)).name;
-		    idxSpace = strfind(fileName,' ');
-		    idxPoint = strfind(fileName,'.');
-		    assert(length(idxPoint)==1);
-		    fileNameNoSpace = fileName(1,1:(idxPoint-1));
-		    fileNameNoSpace(1,idxSpace) = '_';    
-    
-    
+            participantEmgData(indexFile).carDirection = carDirection;
+            participantEmgData(indexFile).biopacSignalIntervals = biopacSignalIntervals;
+            participantEmgData(indexFile).biopacIndices = biopacIndices;
+            participantEmgData(indexFile).biopacProblemChannels=biopacProblemChannels;
+            participantEmgData(indexFile).flag_ignoreTrial = flag_ignoreTrial;
+            participantEmgData(indexFile).flag_carMoved=flag_carMoved;
+            
+
             if(flag_plotOnset==1)
             
                 figOnset = configPlotExporter( figOnset,...
                                                 pageWidthCm,...
                                                 pageHeightCm);
     
+
+                %Replace spaces in the file name with '_'
+                idxSpace = strfind(fileName,' ');
+                idxPoint = strfind(fileName,'.');
+                
+                assert(length(idxPoint)==1);
+                
+                fileNameNoSpace = fileName(1,1:(idxPoint-1));
+                fileNameNoSpace(1,idxSpace) = '_';      
+                
                 plotName = sprintf(['fig_Onset_%s.png'], fileNameNoSpace);
     
                 plotPath = fullfile(outputFolders.carBiopac,plotName);
@@ -665,11 +634,12 @@ for indexParticipant=participantFirst:1:participantLast
             end
         end
     end
-
     %Save the struct containing all of the participant's EMG data to file
     outputEmgFileName = ['emgPipelineOutput_',participantLabel,'.mat'];
     outputEmgFilePath = fullfile(outputFolders.common,outputEmgFileName);
-    save(outputEmgFilePath, 'participantEmgData');
-
-
+    save(outputEmgFilePath, 'participantEmgData');    
 end
+
+
+
+

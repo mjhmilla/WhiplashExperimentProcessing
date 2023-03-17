@@ -50,20 +50,24 @@ for indexParticipant = participantFirst:1:participantLast
 
     for indexTrial=1:1:length(participantEmgData)
 
-        id                      = participantEmgData(indexTrial).id;
+        if(participantEmgData(indexTrial).flag_ignoreTrial == 0)        
+            id                      = participantEmgData(indexTrial).id;
+        
+            condition               = participantEmgData(indexTrial).condition;
+            carDirection            = participantEmgData(indexTrial).carDirection;
+            block                   = participantEmgData(indexTrial).block;
+        
+            biopacIndices           = participantEmgData(indexTrial).biopacIndices;
+            biopacSignalIntervals   = participantEmgData(indexTrial).biopacSignalIntervals;
+        
+            flag_ignoreTrial        = participantEmgData(indexTrial).flag_ignoreTrial;
+            flag_carMoved           = participantEmgData(indexTrial).flag_carMoved;
+            for indexMuscle =firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
+                flag_ignorePreactivatedMuscles(indexMuscle) = participantEmgData(indexTrial).biopacSignalIntervals(indexMuscle).flag_isMusclePreactivated; 
+            end 
 
-        condition               = participantEmgData(indexTrial).condition;
-        carDirection            = participantEmgData(indexTrial).carDirection;
-        block                   = participantEmgData(indexTrial).block;
-
-        biopacIndices           = participantEmgData(indexTrial).biopacIndices;
-        biopacSignalIntervals   = participantEmgData(indexTrial).biopacSignalIntervals;
-
-        flag_ignoreTrial        = participantEmgData(indexTrial).flag_ignoreTrial;
-        flag_carMoved           = participantEmgData(indexTrial).flag_carMoved;
 
 
-        if(isempty(id)==0)
             disp([num2str(indexTrial),' ',condition,' ', carDirection,' ',...
                   num2str(flag_carMoved),' ',num2str(flag_ignoreTrial)]);
             if(indexTrial==6)
@@ -103,23 +107,28 @@ for indexParticipant = participantFirst:1:participantLast
                         indexParticipantRowVector   = ones(1,numberOfMuscles).*noDataNumber;
                         indexTrialRowVector         = ones(1,numberOfMuscles).*noDataNumber;
 
+                        indexMuscleNotPreactivated = zeros(1,lastMuscleBiopacIndex);
                         for indexMuscle=firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-
-
-                            if(biopacSignalIntervals(indexMuscle).flag_maximumValueExceedsThreshold ...
-                               && biopacSignalIntervals(biopacIndices.indexAccCarX).flag_maximumValueExceedsThreshold)
-
-                                onsetTime       = ...
-                                      biopacSignalIntervals(               indexMuscle).intervalTimes(1,1) ...
-                                    - biopacSignalIntervals(biopacIndices.indexAccCarX).intervalTimes(1,1);
-
-                                maxMagnitude    = biopacSignalIntervals(indexMuscle).intervalMaximumValue;
-
-                                onsetRowVector(1,indexMuscle)           = onsetTime;
-                                maxMagnitudeRowVector(1,indexMuscle)    = maxMagnitude;
-                                indexParticipantRowVector(1,indexMuscle)=indexParticipant;
-                                indexTrialRowVector(1,indexMuscle)      = indexTrial;
+                            if flag_ignorePreactivatedMuscles(indexMuscle)== 0
+                                indexMuscleNotPreactivated(indexMuscle) = indexMuscle;
                             end
+                            if indexMuscleNotPreactivated(indexMuscle)~= 0
+
+                                if(biopacSignalIntervals(indexMuscle).flag_maximumValueExceedsThreshold ...
+                                   && biopacSignalIntervals(biopacIndices.indexAccCarX).flag_maximumValueExceedsThreshold)
+    
+                                    onsetTime       = ...
+                                          biopacSignalIntervals(               indexMuscle).intervalTimes(1,1) ...
+                                        - biopacSignalIntervals(biopacIndices.indexAccCarX).intervalTimes(1,1);
+    
+                                    maxMagnitude    = biopacSignalIntervals(indexMuscle).intervalMaximumValue;
+    
+                                    onsetRowVector(1,indexMuscle)           = onsetTime;
+                                    maxMagnitudeRowVector(1,indexMuscle)    = maxMagnitude;
+                                    indexParticipantRowVector(1,indexMuscle)=indexParticipant;
+                                    indexTrialRowVector(1,indexMuscle)      = indexTrial;
+                                end
+                            end 
                         end
 
 

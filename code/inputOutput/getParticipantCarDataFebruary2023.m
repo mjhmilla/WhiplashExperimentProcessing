@@ -3,6 +3,30 @@ function participantCarData=...
 
 
 participantCarData = [];
+participantCarData.biopacProblems = [];
+participantCarData.ignoreTheseFileNumbers = [];
+
+%If the notes mention EMG problems, please enter these problems into the 
+%biopacProblemsStruct like this:
+%
+% Trial 11 has EMG problems on channels 2 and 3
+% Trial 12 has EMG problems on channels 1
+%
+% We have 2 problematic trials, so we need an array of 2 biopacProblemsStruct:
+%
+%       biopacProblemsStruct(2) = struct('trialNumber',0,'channels',[]);
+%
+% And we fill out the struct like this
+%
+%       biopacProblemsStruct(1).trialNumber = 11;
+%       biopacProblemsStruct(1).channels    = [2,3];
+%       biopacProblemsStruct(2).trialNumber = 12;
+%       biopacProblemsStruct(2).channels    = [1];
+%
+% Then we put this information into the participant struct like this:
+%
+%       participantCarData.biopacProblems = biopacProblemsStruct;
+%
 
 
 

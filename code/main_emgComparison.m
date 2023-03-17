@@ -11,7 +11,7 @@ clear all;
 % 1: 2023 data set
 flag_dataSet    = 1;
 participantFirst= 1;
-participantLast = 3;%28;
+participantLast = 28;
 
 percentileSet       = [0.05;0.25;0.5;0.75;0.95];
 
@@ -34,7 +34,7 @@ conditionsToCompare(numberOfConditions) ...
 
 conditionsToCompare(1).condition='nominal';
 conditionsToCompare(1).carDirection='Forward';
-
+% 
 conditionsToCompare(2).condition='seatBack';
 conditionsToCompare(2).carDirection='Forward';
 
@@ -93,9 +93,6 @@ switch(flag_dataSet)
 end
 
 
-
-%% load the data from emgPipelineOutput_participantXX
-
 dataParticipantConditions=compareConditions(participantFirst,participantLast,dataSetFolder,...
     outputSetFolder,conditionsToCompare,firstMuscleBiopacIndex,...
     lastMuscleBiopacIndex,numberOfMuscles,noDataNumber);
@@ -107,11 +104,256 @@ here=1;
 %should include all trials for all participants and muscles for one
 %condition
 
+outputOnsetTimes(numberOfConditions) ...
+    = struct('allMuscles',[]);
+
+
+outputAmplitude(numberOfConditions)...
+     = struct('allMuscles',[]);
+
+
+for indexCondition=1:1:length(conditionsToCompare)
+    sizeArray(indexCondition) = height(dataParticipantConditions(1).conditions...
+    (indexCondition).times);
+    storedPosition(indexCondition,:) = 1:sizeArray(indexCondition):participantLast*sizeArray(indexCondition);
+end 
+
+for indexParticipant = participantFirst:1:participantLast
+    for indexCondition=1:1:length(conditionsToCompare)
+        for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
+            outputOnsetTimes(indexCondition).allMuscles(storedPosition(indexCondition,indexParticipant):...
+                storedPosition(indexCondition,indexParticipant)+sizeArray(indexCondition)-1,indexMuscle)...
+                = dataParticipantConditions(indexParticipant).conditions...
+                (indexCondition).times(:,indexMuscle);
+            outputAmplitude(indexCondition).allMuscles(storedPosition(indexCondition,indexParticipant):...
+                storedPosition(indexCondition,indexParticipant)+sizeArray(indexCondition)-1,indexMuscle)...
+                = dataParticipantConditions(indexParticipant).conditions...
+                (indexCondition).magnitudes(:,indexMuscle);
+    
+        end
+    end 
+end 
 
 
 %%
 %Build a plot that contains a box-whisker illustration for each 
 %condition
 
+%% calculate percentiles 
+
+outputPercentiles(numberOfConditions) ...
+    = struct('percentilesOnsetTimes',[],...
+             'percentilesAmplitudes',[]);
+
+outputValidData(numberOfMuscles)...
+    = struct ('validDataOnsetTimes',[],...
+              'validDataAmplitudes',[]);
+
+
+for indexCondition = 1:1:numberOfConditions
+    for indexPercentile = 1:1:length(percentileSet)
+        for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
+            [percentilesOnsetTime(indexPercentile,indexMuscle), validDataOnsetTimes] = getPercentiles...
+                (outputOnsetTimes(indexCondition).allMuscles(:,indexMuscle),...
+                percentileSet(indexPercentile),noDataNumber);
+            [percentilesAmplitude(indexPercentile,indexMuscle), validDataAmplitudes] = getPercentiles...
+                (outputAmplitude(indexCondition).allMuscles(:,indexMuscle),...
+                percentileSet(indexPercentile),noDataNumber);
+
+                outputValidData(indexCondition,indexMuscle).validDataOnsetTimes = validDataOnsetTimes;
+                outputValidData(indexCondition,indexMuscle).validDataAmplitudes = validDataAmplitudes;
+
+        end 
+    end 
+    outputPercentiles(indexCondition).percentilesOnsetTimes = percentilesOnsetTime;
+    outputPercentiles(indexCondition).percentilesAmplitudes = percentilesAmplitude;
+    
+end 
+
+%% OnsetTimes 
+% Plot the distribution of the data
+
+maxPlotRows          = 3;
+maxPlotCols          = 2;
+plotWidthCm          = 26.0; 
+plotHeightCm         = 5.0;
+plotHorizMarginCm    = 1.5;
+plotVertMarginCm     = 1.5;
+
+[subPlotPanel, ...
+ pageWidthCm, ...
+ pageHeightCm]= ...
+      plotConfigGeneric(  maxPlotCols,...
+                          maxPlotRows,...
+                          plotWidthCm,...
+                          plotHeightCm,...
+                          plotHorizMarginCm,...
+                          plotVertMarginCm);
+
+for indexCondition = 1:1:numberOfConditions
+    figDistribution = figure(indexCondition);
+    for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
+        row = ceil(indexMuscle/maxPlotCols);
+        col = indexMuscle-(row-1)*maxPlotCols;
+       
+        subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
+        [n,edges] = histcounts(outputValidData(indexCondition,indexMuscle).validDataOnsetTimes,'Normalization','probability');
+        
+
+       for indexBin=1:1:length(n)
+            nA = n(1,indexBin);
+            edgeA = edges(1,indexBin);
+            edgeB = edges(1,indexBin+1);            
+            fill([0;nA;nA;0;0], [edgeA;edgeA;edgeB;edgeB;edgeA],...
+                [1,1,1].*0.75);
+            hold on;
+       end
+%         intervalMiddle = zeros(size(n));
+%         for i=2:1:size(edges,2)
+%             intervalMiddle(1,i-1) = 0.5.*(edges(1,i)+edges(1,i-1));
+%         end
+%     
+%     fill([n';min(n);min(n)],...
+%         [intervalMiddle';max(intervalMiddle);min(intervalMiddle)],...
+%          [1,1,1].*0.75);
+%     hold on;
+    
+    
+    %%
+    % Make a box and whisker plot beside the probability distribution
+    %%
+    xOffset = max(n)*1.2;
+    xDelta  = max(n)*0.1;
+    
+    p05 = outputPercentiles(indexCondition).percentilesOnsetTimes(1,indexMuscle);
+    p25 = outputPercentiles(indexCondition).percentilesOnsetTimes(2,indexMuscle);
+    p50 = outputPercentiles(indexCondition).percentilesOnsetTimes(3,indexMuscle);
+    p75 = outputPercentiles(indexCondition).percentilesOnsetTimes(4,indexMuscle);
+    p95 = outputPercentiles(indexCondition).percentilesOnsetTimes(5,indexMuscle);
+    
+    %Plot the whisker: from 5-95%
+    plot([1;1].*xOffset,[p05;p95],'-','Color',[0,0,0]);
+    hold on;
+    plot([1].*xOffset,[p05],'o','Color',[0,0,0],'MarkerFaceColor',[0,0,0]);
+    hold on;
+    plot([1].*xOffset,[p95],'o','Color',[0,0,0],'MarkerFaceColor',[0,0,0]);
+    hold on;
+    
+    
+    %Plot the box: from 25-75%
+    xL = xOffset-xDelta;
+    xR = xOffset+xDelta;
+    fill([xL;xR;xR;xL;xL],[p25;p25;p75;p75;p75],[1,1,1]);
+    hold on;
+    
+    %Plot the median whisker
+    plot([xL;xR],[p50;p50],'Color',[0,0,0],'LineWidth',2);
+    hold on;
+    
+    xRR = xOffset+2*xDelta;
+        for i=1:1:size(percentileSet,1)
+            text(xRR, outputPercentiles(indexCondition).percentilesOnsetTimes(i,indexMuscle), ... 
+                 sprintf('%i%s',percentileSet(i,1)*100,'$$^{th}$$'),...
+                 'VerticalAlignment','middle',...
+                 'HorizontalAlignment','center');
+            hold on;
+        end
+    
+    xlabel('Probability');
+    ylabel('Value');
+    textTitle = ['OnsetTimes Muscle ', num2str(indexMuscle), ' Condition ', num2str(indexCondition)];
+    title(textTitle);
+    box off;
+    end 
+end
+
+%% Amplitude 
+% Plot the distribution of the data
+
+for indexCondition = 1:1:numberOfConditions
+    figDistribution = figure(indexCondition+numberOfConditions);
+    for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
+        row = ceil(indexMuscle/maxPlotCols);
+        col = indexMuscle-(row-1)*maxPlotCols;
+       
+        subplot('Position',reshape(subPlotPanel(row,col,:),1,4));
+        [n,edges] = histcounts(outputValidData(indexCondition,indexMuscle).validDataAmplitudes,'Normalization','probability');
+        
+        for indexBin=1:1:length(n)
+            nA = n(1,indexBin);
+            edgeA = edges(1,indexBin);
+            edgeB = edges(1,indexBin+1);            
+            fill([0;nA;nA;0;0], [edgeA;edgeA;edgeB;edgeB;edgeA],...
+                [1,1,1].*0.75);
+            hold on;
+        end
+
+%         intervalMiddle = zeros(size(n));
+%         for i=2:1:size(edges,2)
+%             intervalMiddle(1,i-1) = 0.5.*(edges(1,i)+edges(1,i-1));
+%         end
+%     
+%     fill([n';min(n);min(n)],...
+%         [intervalMiddle';max(intervalMiddle);min(intervalMiddle)],...
+%          [1,1,1].*0.75);
+%     hold on;
+%     
+    
+    %%
+    % Make a box and whisker plot beside the probability distribution
+    %%
+    xOffset = max(n)*1.2;
+    xDelta  = max(n)*0.1;
+    
+    p05 = outputPercentiles(indexCondition).percentilesAmplitudes(1,indexMuscle);
+    p25 = outputPercentiles(indexCondition).percentilesAmplitudes(2,indexMuscle);
+    p50 = outputPercentiles(indexCondition).percentilesAmplitudes(3,indexMuscle);
+    p75 = outputPercentiles(indexCondition).percentilesAmplitudes(4,indexMuscle);
+    p95 = outputPercentiles(indexCondition).percentilesAmplitudes(5,indexMuscle);
+    
+    %Plot the whisker: from 5-95%
+    plot([1;1].*xOffset,[p05;p95],'-','Color',[0,0,0]);
+    hold on;
+    plot([1].*xOffset,[p05],'o','Color',[0,0,0],'MarkerFaceColor',[0,0,0]);
+    hold on;
+    plot([1].*xOffset,[p95],'o','Color',[0,0,0],'MarkerFaceColor',[0,0,0]);
+    hold on;
+    
+    
+    %Plot the box: from 25-75%
+    xL = xOffset-xDelta;
+    xR = xOffset+xDelta;
+    fill([xL;xR;xR;xL;xL],[p25;p25;p75;p75;p75],[1,1,1]);
+    hold on;
+    
+    %Plot the median whisker
+    plot([xL;xR],[p50;p50],'Color',[0,0,0],'LineWidth',2);
+    hold on;
+    
+    xRR = xOffset+2*xDelta;
+        for i=1:1:size(percentileSet,1)
+            text(xRR, outputPercentiles(indexCondition).percentilesAmplitudes(i,indexMuscle), ... 
+                 sprintf('%i%s',percentileSet(i,1)*100,'$$^{th}$$'),...
+                 'VerticalAlignment','middle',...
+                 'HorizontalAlignment','center');
+            hold on;
+        end
+    
+    xlabel('Probability');
+    ylabel('Value');
+    textTitle = [ 'Amplitudes Muscle ', num2str(indexMuscle), ' Condition ', num2str(indexCondition)];
+    title(textTitle);
+    box off;
+    end 
+end
+
+
 %Perform a Wilcoxon ranksum test to test the probability that the two
 %distributions are the same.
+
+for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
+    probabilityOnsetTimes(indexMuscle) = ranksum(outputValidData(1,indexMuscle).validDataOnsetTimes,outputValidData(2,indexMuscle).validDataOnsetTimes);
+    probabilityAmplitudes(indexMuscle) = ranksum(outputValidData(1,indexMuscle).validDataAmplitudes,outputValidData(2,indexMuscle).validDataAmplitudes);
+end 
+
+
