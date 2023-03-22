@@ -4,27 +4,9 @@ clear all
 close all;
 
 
-%Check that Matlab is currently in the data directory
-localPath=pwd();
-[parentFolderPath,parentFolder] = fileparts(localPath);
-
-assert(contains(parentFolderPath,'WhiplashExperimentProcessing'));
-
-whiplashFolder= parentFolderPath;
-dataSetFolder = fullfile(whiplashFolder,'data2023');
-
-% Get a list of all files and folders in this folder
-files = dir(dataSetFolder);
-% Get a logical vector that tells which is a directory
-dirFlags = [files.isdir];
-% Extract only those that are directories
-foldersInData2023 = files(dirFlags);
-% Get only the folder names into a cell array
-numberOfParticipants = {foldersInData2023(3:end).name};  
-
 % 0: 2022 data set
 % 1: 2023 data set
-flag_dataSet = 1;
+flag_dataSet = 0;
 
 flag_plotData = 1;
 
@@ -34,6 +16,8 @@ scriptMode             = modeProcess; %modeScanForMissingFiles;
 
 flag_runOneParticipant  = 0;
 runThisParticipant      = 1;
+
+
 
 %%
 % Constants
@@ -142,8 +126,16 @@ for indexParticipant = participantFirst:1:participantLast
     % CC: camelCase variables start with a lower case :)
     %     And don't forget the other fields returned by getParticipantMvcData
     %     ...
-    [mvcData, indicesMvcData, namesMvcData]= ...
-        getParticipantMvcDataFebruary2023(indexParticipant);
+    switch flag_dataSet
+        case 0
+            [mvcData, indicesMvcData, namesMvcData]= ...
+                getParticipantMvcDataMay2022(indexParticipant);  
+        case 1
+            [mvcData, indicesMvcData, namesMvcData]= ...
+                getParticipantMvcDataFebruary2023(indexParticipant);
+        otherwise
+            assert(0,'Error: flag_dataSet needs to be either 0 or 1');
+    end
     
     
     

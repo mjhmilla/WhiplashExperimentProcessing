@@ -53,6 +53,9 @@ if(isempty(participantCarData.blockFileNumbers)==0 ...
     end
 end
 
+if(sum(isnan(trialBlock))~=0)
+    flag_ignoreTrial=1;
+end
 
 
 

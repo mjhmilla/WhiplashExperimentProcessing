@@ -2,18 +2,17 @@ clc;
 close all;
 clear all;
 
-opengl('save','software');
 
 % 0: 2022 data set
 % 1: 2023 data set
-flag_dataSet   = 1;
+flag_dataSet   = 0;
 flag_plotOnset = 1;
 
 
 messageLevel = 1;
 
 minimumTrialTime              = 1;
-startWithThisParticipant      = 1;
+startWithThisParticipant      = 3;
 
 % Flags to process a specific part of the data set
 flag_runParticipantSubInterval  = 0;
@@ -386,7 +385,7 @@ for indexParticipant=participantFirst:1:participantLast
 	    [trialCondition, trialBlock, flag_ignoreTrial] = ...
             getTrialConditionAndBlock(  fileName,...
                                         participantCarMetaData);
-
+        
 
         participantEmgData(indexFile).condition=trialCondition;
         participantEmgData(indexFile).block=trialBlock;
@@ -593,8 +592,8 @@ for indexParticipant=participantFirst:1:participantLast
             if(isempty(participantCarMetaData.biopacProblems)==0)
                 for indexProblem=1:1:length(participantCarMetaData.biopacProblems)
                     fileNumber = participantCarMetaData.biopacProblems(indexProblem).trialNumber;
-                    if(fileNumber == participantEmgData(indexFileToProcess).fileNumber)
-                        biopacProblemChannels = participantEmgData(indexFileToProcess).channels;
+                    if(fileNumber == participantEmgData(indexFile).fileNumber)
+                        biopacProblemChannels = participantCarMetaData.biopacProblems(indexProblem).channels;
                     end                    
                 end
             end

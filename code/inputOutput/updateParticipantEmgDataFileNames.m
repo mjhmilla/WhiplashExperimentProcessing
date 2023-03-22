@@ -29,8 +29,9 @@ for indexCondition = 1:1:length(participantCarMetaData.condition)
                 participantEmgData(indexFileToProcess).flag_ignoreTrial = 0;
 
                 if(isempty(participantCarMetaData.ignoreTheseFileNumbers)==0)
-                    for i=1:1:length(participantCarMetaData.ignoreTheseFileNumbers)
-                        if(indexFileNumber==participantCarMetaData.ignoreTheseFileNumbers(i,1))
+                    for indexIgnoreFile=1:1:length(participantCarMetaData.ignoreTheseFileNumbers)  
+                        fileNumberToIgnore = participantCarMetaData.ignoreTheseFileNumbers(1,indexIgnoreFile);
+                        if(indexFileInBlock==fileNumberToIgnore)
                             participantEmgData(indexFileToProcess).flag_ignoreTrial=1;
                         end
                     end
