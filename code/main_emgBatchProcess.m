@@ -12,7 +12,7 @@ flag_plotOnset = 1;
 messageLevel = 1;
 
 minimumTrialTime              = 1;
-startWithThisParticipant      = 3;
+startWithThisParticipant      = 1;
 
 % Flags to process a specific part of the data set
 flag_runParticipantSubInterval  = 0;
@@ -315,10 +315,12 @@ for indexParticipant=participantFirst:1:participantLast
     numberOfTrialsToAnalyze = 0;
     for i=1:1:size(participantCarMetaData.blockFileNumbers,1)
 
-        numberOfTrialsToAnalyze = ...
-            numberOfTrialsToAnalyze ...
-            + (  participantCarMetaData.blockFileNumbers(i,2) ...
-                -participantCarMetaData.blockFileNumbers(i,1) + 1);
+        if(sum(isnan(participantCarMetaData.blockFileNumbers(i,:)))==0)
+            numberOfTrialsToAnalyze = ...
+                numberOfTrialsToAnalyze ...
+                + (  participantCarMetaData.blockFileNumbers(i,2) ...
+                    -participantCarMetaData.blockFileNumbers(i,1) + 1);
+        end
 
     end
 

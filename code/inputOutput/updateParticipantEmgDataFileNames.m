@@ -44,8 +44,8 @@ for indexCondition = 1:1:length(participantCarMetaData.condition)
             flag_printWarning=1;
             if(isempty(participantCarMetaData.ignoreTheseFileNumbers)==0)
                 for i=1:1:length(participantCarMetaData.ignoreTheseFileNumbers)
-                    ignoreTrialNumber = participantCarMetaData.ignoreTheseFileNumbers(i,1);
-                    if(ignoreTrialNumber==indexFileNumber)
+                    ignoreTrialNumber = participantCarMetaData.ignoreTheseFileNumbers(1,i);
+                    if(ignoreTrialNumber==participantEmgData(indexFileToProcess).fileNumber)
                         flag_printWarning=0;
                     end
                 end
