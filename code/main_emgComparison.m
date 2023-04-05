@@ -39,7 +39,9 @@ conditionsToCompare(numberOfConditions) ...
              'trialIndex',      [],...
              'fileName'  ,      []);
 
-
+disp('Participant 1 in 2023 breaks left/right analysis');
+disp('because they did not have 3 repeats collected. Blocks X and Y need');
+disp('to be updated');
 conditionsToCompare(1).condition='nominal';
 conditionsToCompare(1).carDirection='Forward';
 
@@ -120,6 +122,7 @@ outputAmplitude(numberOfConditions)...
 % 2. Makes a vector of indices to hold all of the 
 %       participants x trial x condition
 %
+disp('Block X. Update this code to something easier to understand');
 indexParticipant=1;
 for indexCondition=1:1:length(conditionsToCompare)
     sizeArray(:,indexCondition) =...
@@ -135,6 +138,7 @@ end
 %
 % Consider replacing this with an accumulation.
 %
+disp('Block Y. Update this code to something easier to understand');
 for indexParticipant = participantFirst:1:participantLast
     for indexCondition=1:1:length(conditionsToCompare)
         for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
