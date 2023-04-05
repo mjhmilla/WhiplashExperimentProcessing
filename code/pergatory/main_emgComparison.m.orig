@@ -3,8 +3,6 @@ clc;
 close all;
 clear all;
 
-flag_subtractMeanHeadOnsetTimesFrom2023EmgData = 0;
-
 %Notes to improve participantEmgData
 % 1. Get rid of the first 2 elements
 % 2. Change flag_ignoreTrial to flag_useTrial
@@ -12,11 +10,6 @@ flag_subtractMeanHeadOnsetTimesFrom2023EmgData = 0;
 % 0: 2022 data set
 % 1: 2023 data set
 flag_dataSet    = 1;
-
-
-dataSet2022 = 0; %Constant: do not change
-dataSet2023 = 1; %Constant: do not change
-
 participantFirst= 1;
 participantLast = 28;
 
@@ -28,7 +21,7 @@ firstMuscleBiopacIndex=1;
 lastMuscleBiopacIndex=6;
 numberOfMuscles = lastMuscleBiopacIndex-firstMuscleBiopacIndex+1;
                     
-numberOfConditions = 4;
+numberOfConditions = 2;
 conditionsToCompare(numberOfConditions) ...
     = struct('condition','',... 
              'carDirection','',...
@@ -39,30 +32,38 @@ conditionsToCompare(numberOfConditions) ...
              'trialIndex',      [],...
              'fileName'  ,      []);
 
-
 conditionsToCompare(1).condition='nominal';
 conditionsToCompare(1).carDirection='Forward';
-
+% 
 conditionsToCompare(2).condition='seatBack';
 conditionsToCompare(2).carDirection='Forward';
 
-conditionsToCompare(3).condition='nominal';
-conditionsToCompare(3).carDirection='Backwards';
+% conditionsToCompare(1).condition='nominal';
+% conditionsToCompare(1).direction='Forward';
 
-conditionsToCompare(4).condition='seatBack';
-conditionsToCompare(4).carDirection='Backwards';
+% conditionsToCompare(2).condition='nominal';
+% conditionsToCompare(2).direction='Backward';
+% 
+% conditionsToCompare(3).condition='nominal';
+% conditionsToCompare(3).direction='Left';
+% 
+% conditionsToCompare(4).condition='nominal';
+% conditionsToCompare(4).direction='Right';
 
-directionNames = {'Forward','Backwards','Right','Left'};
-indexForward   = 1;
-indexBackwards = 2;
-indexRight     = 3;
-indexLeft      = 4;
-
-muscleNames = {'STR:L','STR:R','TRO:L','TRO:R','SPL:L','SPL:R'};
+% conditionsToCompare(5).condition='seatBack';
+% conditionsToCompare(5).direction='Forward';
+% 
+% conditionsToCompare(6).condition='seatBack';
+% conditionsToCompare(6).direction='Backward';
+% 
+% conditionsToCompare(7).condition='seatBack';
+% conditionsToCompare(7).direction='Left';
+% 
+% conditionsToCompare(8).condition='seatBack';
+% conditionsToCompare(8).direction='Right';
 
 %Local folders
 addpath('inputOutput');
-addpath('algorithms');
 
 %Check that Matlab is currently in the code directory
 localPath=pwd();
@@ -73,10 +74,6 @@ assert(contains(parentFolderPath,'WhiplashExperimentProcessing'));
 
 whiplashFolder= parentFolderPath;
 codeFolder=localPath;
-
-
-[meanHeadOnsetTimes2022, stdHeadOnsetTimes2022, headOnsetTimes2022] ...
-    = calculateMeanAccHead(dataSet2022);
 
 switch(flag_dataSet)
 	case 0
@@ -90,12 +87,13 @@ switch(flag_dataSet)
 		numberOfParticipants=28;    
 		disp('Important: the TRU_L and TRU_R are really SCP_L and SCP_R');
         disp('Important: the head accelerometer was never attached to the head. (Matts fault)');
- 	otherwise
+		
+	otherwise
 		assert(0,'Error: flag_dataSet must be 0 or 1');
 end
 
 
-dataParticipantConditions=buildConditionDataTable(participantFirst,participantLast,dataSetFolder,...
+dataParticipantConditions=compareConditions(participantFirst,participantLast,dataSetFolder,...
     outputSetFolder,conditionsToCompare,firstMuscleBiopacIndex,...
     lastMuscleBiopacIndex,numberOfMuscles,noDataNumber);
 
@@ -114,27 +112,12 @@ outputAmplitude(numberOfConditions)...
      = struct('allMuscles',[]);
 
 
-
-% This function does 2 things
-% 1. Gets the number of times a trial x condition is repeated (sizeArray)
-% 2. Makes a vector of indices to hold all of the 
-%       participants x trial x condition
-%
-indexParticipant=1;
 for indexCondition=1:1:length(conditionsToCompare)
-    sizeArray(:,indexCondition) =...
-        height(dataParticipantConditions(...
-                indexParticipant).conditions(indexCondition).times);
-    storedPosition(indexCondition,:) = ...
-        [1:sizeArray(indexCondition):participantLast*sizeArray(indexCondition)];
+    sizeArray(indexCondition) = height(dataParticipantConditions(1).conditions...
+    (indexCondition).times);
+    storedPosition(indexCondition,:) = 1:sizeArray(indexCondition):participantLast*sizeArray(indexCondition);
 end 
 
-%
-% This function fishes out all of the onset times for a specific muscle
-% and groups it across the entire data set but separated by condition.
-%
-% Consider replacing this with an accumulation.
-%
 for indexParticipant = participantFirst:1:participantLast
     for indexCondition=1:1:length(conditionsToCompare)
         for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
@@ -142,36 +125,15 @@ for indexParticipant = participantFirst:1:participantLast
                 storedPosition(indexCondition,indexParticipant)+sizeArray(indexCondition)-1,indexMuscle)...
                 = dataParticipantConditions(indexParticipant).conditions...
                 (indexCondition).times(:,indexMuscle);
-
             outputAmplitude(indexCondition).allMuscles(storedPosition(indexCondition,indexParticipant):...
                 storedPosition(indexCondition,indexParticipant)+sizeArray(indexCondition)-1,indexMuscle)...
                 = dataParticipantConditions(indexParticipant).conditions...
                 (indexCondition).magnitudes(:,indexMuscle);
-            
+    
         end
     end 
 end 
 
-
-if(flag_subtractMeanHeadOnsetTimesFrom2023EmgData==1)
-    for indexCondition = 1:1:length(conditionsToCompare)
-        if flag_dataSet == 1
-            for indexDirection = 1:1:length(directionNames)
-                if strcmp (conditionsToCompare(indexCondition).carDirection, ...
-                           directionNames(indexDirection))
-
-
-                    indexValidData = ...
-                        find(outputOnsetTimes(indexCondition).allMuscles ~= noDataNumber);
-
-                    outputOnsetTimes(indexCondition).allMuscles(indexValidData) = ...
-                        outputOnsetTimes(indexCondition).allMuscles(indexValidData) ...
-                        -meanHeadOnsetTimes2022(indexDirection);
-                end
-            end 
-        end 
-    end 
-end
 
 %%
 %Build a plot that contains a box-whisker illustration for each 
@@ -187,38 +149,19 @@ outputValidData(numberOfMuscles)...
     = struct ('validDataOnsetTimes',[],...
               'validDataAmplitudes',[]);
 
-flag_removeNegativeValues=1;
 
 for indexCondition = 1:1:numberOfConditions
     for indexPercentile = 1:1:length(percentileSet)
         for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-%             [percentilesOnsetTime(indexPercentile,indexMuscle), validDataOnsetTimes] ...
-%                 = getPercentiles(...
-%                     outputOnsetTimes(indexCondition).allMuscles(:,indexMuscle),...
-%                     percentileSet(indexPercentile),noDataNumber);
-%             [percentilesAmplitude(indexPercentile,indexMuscle), validDataAmplitudes] ...
-%                 = getPercentiles(outputAmplitude(indexCondition).allMuscles(:,indexMuscle),...
-%                 percentileSet(indexPercentile),noDataNumber);
-               
-            validDataOnsetTimes = extractValidData(...
-                outputOnsetTimes(indexCondition).allMuscles(:,indexMuscle),...
-                noDataNumber, flag_removeNegativeValues);
+            [percentilesOnsetTime(indexPercentile,indexMuscle), validDataOnsetTimes] = getPercentiles...
+                (outputOnsetTimes(indexCondition).allMuscles(:,indexMuscle),...
+                percentileSet(indexPercentile),noDataNumber);
+            [percentilesAmplitude(indexPercentile,indexMuscle), validDataAmplitudes] = getPercentiles...
+                (outputAmplitude(indexCondition).allMuscles(:,indexMuscle),...
+                percentileSet(indexPercentile),noDataNumber);
 
-            validDataAmplitudes = extractValidData(...
-                outputAmplitude(indexCondition).allMuscles(:,indexMuscle),...
-                noDataNumber, flag_removeNegativeValues);
-            
-            percentilesOnsetTime(indexPercentile,indexMuscle) ...
-                 = getPercentiles(validDataOnsetTimes,...
-                        percentileSet(indexPercentile));
-
-            percentilesAmplitude(indexPercentile,indexMuscle) ...
-                 = getPercentiles(validDataAmplitudes,...
-                        percentileSet(indexPercentile));
-
-
-            outputValidData(indexCondition,indexMuscle).validDataOnsetTimes = validDataOnsetTimes;
-            outputValidData(indexCondition,indexMuscle).validDataAmplitudes = validDataAmplitudes;
+                outputValidData(indexCondition,indexMuscle).validDataOnsetTimes = validDataOnsetTimes;
+                outputValidData(indexCondition,indexMuscle).validDataAmplitudes = validDataAmplitudes;
 
         end 
     end 
@@ -265,7 +208,16 @@ for indexCondition = 1:1:numberOfConditions
                 [1,1,1].*0.75);
             hold on;
        end
-
+%         intervalMiddle = zeros(size(n));
+%         for i=2:1:size(edges,2)
+%             intervalMiddle(1,i-1) = 0.5.*(edges(1,i)+edges(1,i-1));
+%         end
+%     
+%     fill([n';min(n);min(n)],...
+%         [intervalMiddle';max(intervalMiddle);min(intervalMiddle)],...
+%          [1,1,1].*0.75);
+%     hold on;
+    
     
     %%
     % Make a box and whisker plot beside the probability distribution
@@ -302,16 +254,14 @@ for indexCondition = 1:1:numberOfConditions
         for i=1:1:size(percentileSet,1)
             text(xRR, outputPercentiles(indexCondition).percentilesOnsetTimes(i,indexMuscle), ... 
                  sprintf('%i%s',percentileSet(i,1)*100,'$$^{th}$$'),...
+                 'VerticalAlignment','middle',...
                  'HorizontalAlignment','center');
             hold on;
         end
     
     xlabel('Probability');
-    ylabel('OnsetTime [s]');
-    titleMuscle = char(muscleNames(indexMuscle));
-    titleCondition = char(conditionsToCompare(indexCondition).condition);
-    titleCarDirection = char(conditionsToCompare(indexCondition).carDirection);
-    textTitle = [titleMuscle,', ', titleCondition ,', ', titleCarDirection];
+    ylabel('Value');
+    textTitle = ['OnsetTimes Muscle ', num2str(indexMuscle), ' Condition ', num2str(indexCondition)];
     title(textTitle);
     box off;
     end 
@@ -390,11 +340,8 @@ for indexCondition = 1:1:numberOfConditions
         end
     
     xlabel('Probability');
-    ylabel('Amplitude [mV]');
-    titleMuscle = char(muscleNames(indexMuscle));
-    titleCondition = char(conditionsToCompare(indexCondition).condition);
-    titleCarDirection = char(conditionsToCompare(indexCondition).carDirection);
-    textTitle = [titleMuscle,', ', titleCondition ,', ', titleCarDirection];
+    ylabel('Value');
+    textTitle = [ 'Amplitudes Muscle ', num2str(indexMuscle), ' Condition ', num2str(indexCondition)];
     title(textTitle);
     box off;
     end 
