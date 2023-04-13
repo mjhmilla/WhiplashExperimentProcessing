@@ -15,6 +15,9 @@ n=percentileSet*length(data);
 n=round(n);
 dataOrder=sortrows(data);
 
+if(n==0)
+    n=1;
+end
 
 %Update value so that it returns this number in data
 percentiles = dataOrder(n);

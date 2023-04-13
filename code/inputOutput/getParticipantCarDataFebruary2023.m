@@ -48,8 +48,8 @@ switch participantId
         %These are the start and end file numbers for each of the
         %the conditions listed above
         participantCarData.blockFileNumbers = [8, 8;...
-                                               9, 20;...
-                                               21,27];
+                                               9, 19;...
+                                               20,27];
 
         %If the notes mention to ignore a trial that is within
         %the range in conditionFileNumbers, list them here.                                          

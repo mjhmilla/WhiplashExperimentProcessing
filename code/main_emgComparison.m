@@ -22,6 +22,13 @@ participantLast = 28;
 
 percentileSet       = [0.05;0.25;0.5;0.75;0.95];
 
+%Removal of invalid data
+flag_removeNegativeValues  = 1;
+maxAllowedNormEMGAmplitude = 1.0;
+
+maxBumperToEmgOnsetTime_BraultSiegmundWheeler2000 = 0.104; 
+maxAllowedHeadToEMGOnsetTime  = 0.150;
+
 %Input
 noDataNumber = -1;
 firstMuscleBiopacIndex=1;
@@ -54,6 +61,28 @@ conditionsToCompare(3).carDirection='Backwards';
 conditionsToCompare(4).condition='seatBack';
 conditionsToCompare(4).carDirection='Backwards';
 
+%%
+% The ordering of these names define the code that is used in file 
+% generated for SPSS. For example
+%
+% id,   sex,    seatPosition,   direction,  muscle
+% 5,      2,               2,           3,       4
+%
+% Would mean 
+%   Participant 5
+%   Female
+%   seatBack
+%   Right
+%   TRO:R
+%%
+sexNames = {'m','f'};
+indexMale=1;
+indexFemale=2;
+
+seatPositionNames = {'nominal','seatBack'};
+indexSeatNominal = 1;
+indexSeatBack    = 2;
+
 directionNames = {'Forward','Backwards','Right','Left'};
 indexForward   = 1;
 indexBackwards = 2;
@@ -61,6 +90,12 @@ indexRight     = 3;
 indexLeft      = 4;
 
 muscleNames = {'STR:L','STR:R','TRO:L','TRO:R','SPL:L','SPL:R'};
+
+%%
+% SPSS Table: If needed, update the column labels
+%%
+spssTable.columnLabels = {'id','sex','seatPosition','direction','muscle','onsetTime','amplitude'};
+spssTable.data = [];
 
 %Local folders
 addpath('inputOutput');
@@ -109,27 +144,28 @@ here=1;
 %condition
 
 outputOnsetTimes(numberOfConditions) ...
-    = struct('allMuscles',[]);
+    = struct('allMuscles',[],'id',[]);
 
 
 outputAmplitude(numberOfConditions)...
-     = struct('allMuscles',[]);
+     = struct('allMuscles',[],'id',[]);
 
 
 
 % This function does 2 things
-% 1. Gets the number of times a trial x condition is repeated (sizeArray)
-% 2. Makes a vector of indices to hold all of the 
-%       participants x trial x condition
+% 1. Gets the number of times a trial x condition is repeated (repeatsPerCondition)
+% 2. Makes a vector of indices so that all of the structs data can be put into
+%    a single vector across  participants x repeats
 %
-disp('Block X. Update this code to something easier to understand');
 indexParticipant=1;
-for indexCondition=1:1:length(conditionsToCompare)
-    sizeArray(:,indexCondition) =...
-        height(dataParticipantConditions(...
-                indexParticipant).conditions(indexCondition).times);
-    storedPosition(indexCondition,:) = ...
-        [1:sizeArray(indexCondition):participantLast*sizeArray(indexCondition)];
+repeatsPerCondition = zeros(1,length(conditionsToCompare));
+vectorStartIndexMap = zeros(length(conditionsToCompare), participantLast);
+
+for i=1:1:length(conditionsToCompare)
+    repeatsPerCondition(:,i) =...
+        height(dataParticipantConditions(indexParticipant).conditions(i).times);
+    vectorStartIndexMap(i,:) = ...
+        [1:repeatsPerCondition(i):participantLast*repeatsPerCondition(i)];
 end 
 
 %
@@ -139,18 +175,22 @@ end
 % Consider replacing this with an accumulation.
 %
 disp('Block Y. Update this code to something easier to understand');
-for indexParticipant = participantFirst:1:participantLast
-    for indexCondition=1:1:length(conditionsToCompare)
-        for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-            outputOnsetTimes(indexCondition).allMuscles(storedPosition(indexCondition,indexParticipant):...
-                storedPosition(indexCondition,indexParticipant)+sizeArray(indexCondition)-1,indexMuscle)...
-                = dataParticipantConditions(indexParticipant).conditions...
-                (indexCondition).times(:,indexMuscle);
+for idxP = participantFirst:1:participantLast
+    for idxC=1:1:length(conditionsToCompare)        
+        for idxM = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
 
-            outputAmplitude(indexCondition).allMuscles(storedPosition(indexCondition,indexParticipant):...
-                storedPosition(indexCondition,indexParticipant)+sizeArray(indexCondition)-1,indexMuscle)...
-                = dataParticipantConditions(indexParticipant).conditions...
-                (indexCondition).magnitudes(:,indexMuscle);
+            indexStart = vectorStartIndexMap(idxC,idxP);
+            indexEnd   = indexStart+repeatsPerCondition(1,idxC)-1;
+
+            outputOnsetTimes(idxC).id(indexStart:indexEnd,1) = idxP;
+
+            outputOnsetTimes(idxC).allMuscles(indexStart:indexEnd,idxM)...
+                = dataParticipantConditions(idxP).conditions(idxC).times(:,idxM);
+
+            outputAmplitude(idxC).id(indexStart:indexEnd,1) = idxP;            
+
+            outputAmplitude(idxC).allMuscles(indexStart:indexEnd,idxM)...
+                = dataParticipantConditions(idxP).conditions(idxC).magnitudes(:,idxM);
             
         end
     end 
@@ -191,45 +231,159 @@ outputValidData(numberOfMuscles)...
     = struct ('validDataOnsetTimes',[],...
               'validDataAmplitudes',[]);
 
-flag_removeNegativeValues=1;
 
 for indexCondition = 1:1:numberOfConditions
-    for indexPercentile = 1:1:length(percentileSet)
         for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-%             [percentilesOnsetTime(indexPercentile,indexMuscle), validDataOnsetTimes] ...
-%                 = getPercentiles(...
-%                     outputOnsetTimes(indexCondition).allMuscles(:,indexMuscle),...
-%                     percentileSet(indexPercentile),noDataNumber);
-%             [percentilesAmplitude(indexPercentile,indexMuscle), validDataAmplitudes] ...
-%                 = getPercentiles(outputAmplitude(indexCondition).allMuscles(:,indexMuscle),...
-%                 percentileSet(indexPercentile),noDataNumber);
-               
-            validDataOnsetTimes = extractValidData(...
-                outputOnsetTimes(indexCondition).allMuscles(:,indexMuscle),...
-                noDataNumber, flag_removeNegativeValues);
 
-            validDataAmplitudes = extractValidData(...
-                outputAmplitude(indexCondition).allMuscles(:,indexMuscle),...
-                noDataNumber, flag_removeNegativeValues);
+
+            [val,idDirection] = ...
+                    max(contains(directionNames,...
+                                 conditionsToCompare(indexCondition).carDirection));
+
+            meanCarHeadOnsetTimeByDirection = meanHeadOnsetTimes2022(1,idDirection);
+
+            maxAllowedCarToEMGOnsetTime = meanCarHeadOnsetTimeByDirection ...
+                                        + maxAllowedHeadToEMGOnsetTime;
+
+            [validId, validDataOnsetTimes, validDataAmplitudes] = ...
+                extractValidData(...
+                        outputOnsetTimes(indexCondition).id(:,1),...
+                        outputOnsetTimes(indexCondition).allMuscles(:,indexMuscle),...
+                        outputAmplitude(indexCondition).allMuscles(:,indexMuscle),...
+                        maxAllowedNormEMGAmplitude,...
+                        maxAllowedCarToEMGOnsetTime,...
+                        noDataNumber,...
+                        flag_removeNegativeValues);
+
+
+            for indexPercentile = 1:1:length(percentileSet)        
+                    percentilesOnsetTime(indexPercentile,indexMuscle) ...
+                         = getPercentiles(validDataOnsetTimes,...
+                                percentileSet(indexPercentile));
+        
+                    percentilesAmplitude(indexPercentile,indexMuscle) ...
+                         = getPercentiles(validDataAmplitudes,...
+                                percentileSet(indexPercentile));
+                     
+            end
+
             
-            percentilesOnsetTime(indexPercentile,indexMuscle) ...
-                 = getPercentiles(validDataOnsetTimes,...
-                        percentileSet(indexPercentile));
 
-            percentilesAmplitude(indexPercentile,indexMuscle) ...
-                 = getPercentiles(validDataAmplitudes,...
-                        percentileSet(indexPercentile));
-
-
+            outputValidData(indexCondition,indexMuscle).id = validId;
             outputValidData(indexCondition,indexMuscle).validDataOnsetTimes = validDataOnsetTimes;
             outputValidData(indexCondition,indexMuscle).validDataAmplitudes = validDataAmplitudes;
+            
+
+            %Add the additional fields that will be written to the file given to SPSS
+            %
+            % participant [1-28]
+            % sex 
+            %  1:m
+            %  2:f     
+            %
+            % direction
+            %  1:forward
+            %  2:backwards
+            %  3:right
+            %  4:left
+            %
+            % seatPosition
+            %  1: nominal
+            %  2: back           
+            %
+            % muscle
+            %  1. STR_L
+            %  2. STR_R
+            %  3. TRP_L
+            %  4. TRP_R
+            %  5. SPL_L
+            %  6. SPL_R
+            
+            spssSubTable =[];
+            spssRow = [];
+            for i=1:1:length(validId)
+                participantData = getParticipantDataFebruary2023(validId(i,1));
+                
+                [val,idSex] = max(contains(sexNames,participantData.sex));
+                
+                [val,idSeatPosition] = ...
+                    max(contains(seatPositionNames,...
+                                 conditionsToCompare(indexCondition).condition));
+
+                [val,idDirection] = ...
+                    max(contains(directionNames,...
+                                 conditionsToCompare(indexCondition).carDirection));
+
+
+                idMuscle = (indexMuscle-firstMuscleBiopacIndex)+1;
+
+                %%
+                % SPSS Table: If needed, update the size and data in the 
+                %             rows
+                %%
+
+                spssRow = zeros(1,length(spssTable.columnLabels));
+                spssRow(1,1) = validId(i,1);
+                spssRow(1,2) = idSex;
+                spssRow(1,3) = idSeatPosition;
+                spssRow(1,4) = idDirection;
+                spssRow(1,5) = idMuscle;
+                spssRow(1,6) = validDataOnsetTimes(i,1);
+                spssRow(1,7) = validDataAmplitudes(i,1);
+
+                spssTable.data =[spssTable.data; spssRow];
+            end
+
+
 
         end 
-    end 
-    outputPercentiles(indexCondition).percentilesOnsetTimes = percentilesOnsetTime;
-    outputPercentiles(indexCondition).percentilesAmplitudes = percentilesAmplitude;
-    
+
+        outputPercentiles(indexCondition).percentilesOnsetTimes = percentilesOnsetTime;
+        outputPercentiles(indexCondition).percentilesAmplitudes = percentilesAmplitude;            
+       
 end 
+
+
+%%
+% Write the SPSS table to file
+%%
+
+%outputSetFolder
+spssFileName = '';
+switch flag_dataSet
+    case dataSet2022
+        spssFileName = 'spssData2022.csv';
+    case dataSet2023
+        spssFileName = 'spssData2023.csv';        
+    otherwise
+        assert(0,'Error: Invalid dataset');
+end
+spssFileName = fullfile(outputSetFolder,'allParticipants',spssFileName);
+fid = fopen(spssFileName,'w');
+
+dlm = ',';
+
+%Write the header
+
+assert(length(spssTable.columnLabels) == size(spssTable.data,2),...
+       'Error: The number of column labels and data columns should match');
+
+fprintf(fid,'%s',spssTable.columnLabels{1});
+for i=2:1:length(spssTable.columnLabels)
+    fprintf(fid,',%s',spssTable.columnLabels{i});
+end
+fprintf(fid,'\n');
+
+for i=1:1:size(spssTable.data,1)
+    fprintf(fid,'%1.6f',spssTable.data(i,1));
+    for j=2:1:size(spssTable.data,2)
+        fprintf(fid,',%1.6f',spssTable.data(i,j));        
+    end
+    fprintf(fid,'\n');    
+end
+
+fclose(fid);
+
 
 %% OnsetTimes 
 % Plot the distribution of the data
