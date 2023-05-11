@@ -174,6 +174,7 @@ numberOfParticipants=0;
 %%
 colorOnset      = [0,0,1];
 
+
 maxPlotRows          = 4;
 maxPlotCols          = 2;
 plotWidthCm          = 26.0; 
@@ -190,7 +191,6 @@ plotVertMarginCm     = 1.5;
                           plotHeightCm,...
                           plotHorizMarginCm,...
                           plotVertMarginCm);
-
 
 %%
 % Data set dependent variables
