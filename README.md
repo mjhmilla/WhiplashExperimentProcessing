@@ -14,6 +14,7 @@ Matthew Millard, May 2023
    2. main_emgBatchProcess.m (3 minutes per participant). To run one participant set
 
       > flag_runOneParticipant          = 1;
+
       > runThisParticipant              = 1;
       
    If these scripts run without any errors then the installation is functioning.
