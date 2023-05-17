@@ -1,6 +1,6 @@
 # Description
 
-This repository contains a series of scripts to process kinematic and electromyographic (EMG) data collected of the response of the head and neck to accelerations in the drivers seat of a (mechanically simulated) car.
+This repository contains a series of scripts to process kinematic and electromyographic (EMG) data collected of the response of the head and neck to accelerations in the drivers seat of a (mechanically simulated) car. 
 
 Matthew Millard, May 2023
 
