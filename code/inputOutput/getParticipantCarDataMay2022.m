@@ -50,7 +50,7 @@ switch participantId
         %If the notes mention to ignore a trial that is within
         %the range in conditionFileNumbers, list them here.                                          
         participantCarData.ignoreTheseFileNumbers = [];                                           
-
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
     case 2
         participantCarData.id               = participantId;
@@ -64,6 +64,7 @@ switch participantId
                                                 2, 13;...
                                                 14, 21];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
         
     case 3
         participantCarData.id           = participantId;
@@ -96,6 +97,7 @@ switch participantId
         biopacProblemStruct(8).trialNumber = 38;
         biopacProblemStruct(8).channels = 2;
         participantCarData.biopacProblems = biopacProblemStruct;
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
 
     case 4
@@ -126,6 +128,7 @@ switch participantId
         biopacProblemStruct(7).trialNumber = 17;
         biopacProblemStruct(7).channels = 3;
         participantCarData.biopacProblems = biopacProblemStruct;
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
  
 
@@ -141,6 +144,7 @@ switch participantId
                                                 9, 29;...
                                                 30, 37];
         participantCarData.ignoreTheseFileNumbers = [15, 19, 20 , 21, 22, 23, 24, 25, 26];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
     case 6
         participantCarData.id           = participantId;
@@ -154,6 +158,7 @@ switch participantId
                                                 4, 15;...
                                                 16, 23];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
     case 7 
         participantCarData.id           = participantId;
@@ -167,6 +172,7 @@ switch participantId
                                                 5, 16;...
                                                 17, 24];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =1:12;
 
     case 8 
         participantCarData.id           = participantId;
@@ -180,6 +186,7 @@ switch participantId
                                                 7, 18;...
                                                 19, 26];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
     case 9
         participantCarData.id           = participantId;
@@ -193,6 +200,7 @@ switch participantId
                                                 6, 17;...
                                                 18, 25];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =1:12;
 
 
     case 10   
@@ -207,6 +215,7 @@ switch participantId
                                                 7, 18;...
                                                 19, 26];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
     case 11
         participantCarData.id           = participantId;
@@ -220,6 +229,7 @@ switch participantId
                                                 4, 15;...
                                                 16, 23];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
     case 12
         participantCarData.id           = participantId;
@@ -237,6 +247,7 @@ switch participantId
         biopacProblemStruct(1).trialNumber = 17;
         biopacProblemStruct(1).channels = [2];
         participantCarData.biopacProblems = biopacProblemStruct;
+        participantCarData.ignoreTheseOptitrackFileNumbers =[8];
 
       
     case 13 
@@ -261,6 +272,7 @@ switch participantId
         biopacProblemStruct(4).trialNumber = 32;
         biopacProblemStruct(4).channels = 2;
         participantCarData.biopacProblems = biopacProblemStruct;
+        participantCarData.ignoreTheseOptitrackFileNumbers =[9];
 
       
 
@@ -276,6 +288,7 @@ switch participantId
                                                 8, 19;...
                                                 20, 27];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[3];
 
     case 15 
         participantCarData.id           = participantId;
@@ -289,6 +302,7 @@ switch participantId
                                                 2, 13;...
                                                 14, 21];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =1:12;
 
     case 16 
         participantCarData.id           = participantId;
@@ -302,6 +316,7 @@ switch participantId
                                                 5, 16;...
                                                 24, 31];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
     case 17 
         participantCarData.id           = participantId;
@@ -315,6 +330,7 @@ switch participantId
                                                 5, 16;...
                                                 17, 24];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
 
     case 18 
@@ -329,6 +345,7 @@ switch participantId
                                                 4, 15;...
                                                 16, 23];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
     case 19 
         participantCarData.id           = participantId;
@@ -346,6 +363,7 @@ switch participantId
         biopacProblemStruct(1).trialNumber = 19;
         biopacProblemStruct(1).channels = 1;
         participantCarData.biopacProblems = biopacProblemStruct;
+        participantCarData.ignoreTheseOptitrackFileNumbers =[8];
 
     
     case 20 
@@ -360,6 +378,7 @@ switch participantId
                                                 4, 15;...
                                                 16, 23];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
     case 21
         participantCarData.id           = participantId;
@@ -373,6 +392,7 @@ switch participantId
                                                 4, 15;...
                                                 16, 23];
         participantCarData.ignoreTheseFileNumbers = [];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[];
     
 
    otherwise

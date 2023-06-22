@@ -13,6 +13,14 @@
 *.png
 *.asv
 *.trc
-models/ik-results/
+*.mot
+*.sto
+*_MuscleAnalysis_*
+*_Kinematics_*
+*_ik_model_marker_*
+*.xml
+*.osim
+*.vtp
+*.ods
 *.DS_Store
 
