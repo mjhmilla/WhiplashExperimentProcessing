@@ -31,7 +31,6 @@ function [ reference_idx_start]= calc_ref_idx(trc_files,trc_data_folder,carAccOn
         b= zeros(carAccOnsetTime_idx(trial)-199,2);
         c=zeros(carAccOnsetTime_idx(trial)-199,2);
         list_sum=zeros(1,carAccOnsetTime_idx(trial)-199);
-
        
           
         for k= 1:length(b)

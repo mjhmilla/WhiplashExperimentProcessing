@@ -23,4 +23,5 @@
 *.vtp
 *.ods
 *.DS_Store
-
+opensim2022/participant*/ik/*
+opensim2022/participant21_presentation/*

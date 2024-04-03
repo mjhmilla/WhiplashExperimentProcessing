@@ -1,0 +1,6 @@
+OpenSim jython scripting
+
+#import org.opensim
+#model=modeling.Model('C:/Users/norma/Desktop/ConstrainedLumbarSpineModel-latest/Lumbar_C_4.osim')
+#fname=org.opensim.modeling.StdVectorString(['C:/Users/norma/Desktop/ConstrainedLumbarSpineModel-latest/MotionFiles/MotionFiles/MotionFile_C_40DegrFlex.mot'])
+#modeling.opensimSimulation.updatePre40KinematicsFilesFor40MotionType(model,fname,'_upd')

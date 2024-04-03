@@ -1,7 +1,19 @@
-%%main_emgComparison
-clc;
-close all;
-clear all;
+flag_useDefaultInitialization=0;
+if(exist('flag_outerLoopMode','var') == 0)
+    flag_useDefaultInitialization=1;
+else    
+    if(flag_outerLoopMode==0)
+        flag_useDefaultInitialization=1;
+    end
+end
+if(flag_useDefaultInitialization==1)
+    clc
+    clear all
+    close all;    
+    % 0: 2022 data set
+    % 1: 2023 data set
+    flag_dataSet = 0; 
+end
 
 flag_subtractMeanHeadOnsetTimesFrom2023EmgData = 0;
 
@@ -9,16 +21,10 @@ flag_subtractMeanHeadOnsetTimesFrom2023EmgData = 0;
 % 1. Get rid of the first 2 elements
 % 2. Change flag_ignoreTrial to flag_useTrial
 
-% 0: 2022 data set
-% 1: 2023 data set
-flag_dataSet    = 1;
-
-
 dataSet2022 = 0; %Constant: do not change
 dataSet2023 = 1; %Constant: do not change
 
-participantFirst= 1;
-participantLast = 28;
+
 
 percentileSet       = [0.05;0.25;0.5;0.75;0.95];
 
@@ -120,11 +126,15 @@ switch(flag_dataSet)
 		dataSetFolder = fullfile(whiplashFolder,'data2022');
 		outputSetFolder=fullfile(whiplashFolder,'output2022');        
 		numberOfParticipants=21;
+        participantFirst= 1;
+        participantLast = 21;        
 
 	case 1
 		dataSetFolder = fullfile(whiplashFolder,'data2023');
 		outputSetFolder=fullfile(whiplashFolder,'output2023');
-		numberOfParticipants=28;    
+		numberOfParticipants=28;  
+        participantFirst= 1;
+        participantLast = 28;        
 		disp('Important: the TRU_L and TRU_R are really SCP_L and SCP_R');
         disp('Important: the head accelerometer was never attached to the head. (Matts fault)');
  	otherwise
@@ -567,4 +577,5 @@ for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
     probabilityAmplitudes(indexMuscle) = ranksum(outputValidData(1,indexMuscle).validDataAmplitudes,outputValidData(2,indexMuscle).validDataAmplitudes);
 end 
 
+cd(codeFolder);
 

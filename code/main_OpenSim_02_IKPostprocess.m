@@ -1,7 +1,35 @@
-clc;
-close all;
-clear all;
+%%
+% @author: Jakob Vilsmeier, Matthew Millard
+% @date: 1/3/2023 
+%        22/6/2023
+%
+% Description
+% This function will solve for the transform between the T1-C7 joint to
+% the skull center of mass frame. This information is saved to file
+% that contains the translation (x,y,z) and the quaternion 
+% coordinates (ux,uy,uz,theta).
+%%
+flag_useDefaultInitialization=0;
+if(exist('flag_outerLoopMode','var') == 0)
+    flag_useDefaultInitialization=1;
+else    
+    if(flag_outerLoopMode==0)
+        flag_useDefaultInitialization=1;
+    end
+end
+if(flag_useDefaultInitialization==1)
+    clc
+    clear all
+    close all;    
+    % 0: 2022 data set
+    % 1: 2023 data set
+    flag_dataSet = 0; 
+end
 
+assert(flag_dataSet==0,'Error: Code has not yet been updated to work',...
+    ' with the 2023 dataset, which includes a different marker layout.');
+
+skipTheseFolders = {'participant21_presentation'};
 %%
 % This function will go through each participant and each MOT file and
 % will:
@@ -34,21 +62,20 @@ clear all;
 % Pull in the modeling classes straight from the OpenSim distribution
 import org.opensim.modeling.*
 
-slashChar = '\';
 
 % Check that we are starting in the correct directory
-currentDirContents = dir;
-assert( contains( currentDirContents(1).folder,...
-                  ['WhiplashExperimentProcessing',slashChar,'code'])==1,...
-        ['Error: script must be started in the code directory in'...
-        ' WhiplashExperimentProcessing']);
+localPath=pwd();
+[parentFolderPath,parentFolder] = fileparts(localPath);
+
+assert(contains(parentFolder,'code'));
+assert(contains(parentFolderPath,'WhiplashExperimentProcessing'));
 
 addpath('algorithms/');
 addpath('inputOutput/');
 
-codeDir = currentDirContents(1).folder;
+codeDir = pwd;
 cd ..;
-cd 'data';
+cd 'opensim2022';
 dataDir = pwd;
 dataDirContents = dir;
 
@@ -70,7 +97,14 @@ dataDirContents = dir;
 %            not have the words 'first_step' in it.
 %%
 for indexDataDir = 1:1:length(dataDirContents)
-    if(contains(dataDirContents(indexDataDir).name,'participant'))
+    flag_ignoreFolder=0;
+    for indexIgnore = 1:1:length(skipTheseFolders)
+        if(contains(dataDirContents(indexDataDir).name,skipTheseFolders{indexIgnore}))
+            flag_ignoreFolder=1;
+        end
+    end
+
+    if(contains(dataDirContents(indexDataDir).name,'participant') && flag_ignoreFolder==0)
         participantDir = fullfile(dataDirContents(indexDataDir).folder,...
                                   dataDirContents(indexDataDir).name);
 
@@ -95,15 +129,15 @@ for indexDataDir = 1:1:length(dataDirContents)
                 osimFile = participantDirContents(indexFile).name;
             end
             if(strcmp(participantDirContents(indexFile).name,...
-                      'IKResults')...
+                      'ik')...
                && participantDirContents(indexFile).isdir==1)
                 flag_IKResultsFolder=flag_IKResultsFolder+1;
             end
             if(strcmp(participantDirContents(indexFile).name,...
-                      'IKResultsProcessed')...
+                      'postprocessing')...
                && participantDirContents(indexFile).isdir==1)
                 flag_IKResultsProcessedFolder=...
-                    flag_IKResultsProcessedFolder+1;
+                    flag_IKResultsProcessedFolder+1;            
             end
         end
 
@@ -113,14 +147,14 @@ for indexDataDir = 1:1:length(dataDirContents)
             'in the name'])
         assert(flag_IKResultsFolder==1,...
             [dataDirContents(indexDataDir).folder,...
-            ': does not contain exactly one folder named IKResults']);
+            ': does not contain exactly one folder named "ik"']);
         assert(flag_IKResultsProcessedFolder==1,...
             [dataDirContents(indexDataDir).folder,...
             ': does not contain exactly one folder named',...
-             ' IKResultsPostProcessed']);
+             ' "postprocessing"']);
         
-        motFolder         = fullfile(participantDir,'IKResults');
-        motProcessedFolder = fullfile(participantDir,'IKResultsProcessed');
+        motFolder         = fullfile(participantDir,'ik');
+        motProcessedFolder = fullfile(participantDir,'postprocessing');
 
         model = Model(fullfile(participantDir, osimFile));
         modelState=model.initSystem();
@@ -131,10 +165,9 @@ for indexDataDir = 1:1:length(dataDirContents)
 
         cd(motFolder);
         motFilesToProcess = dir;
-
         for indexMotFile = 1:1:length(motFilesToProcess)
             flag_firstFrame = contains(motFilesToProcess(indexMotFile).name,...
-                                       'first_frame');
+                                       'FirstFrame');
             flag_motFile = contains(motFilesToProcess(indexMotFile).name,...
                                        '.mot');
             if(flag_firstFrame==0 && flag_motFile == 1)
@@ -481,5 +514,6 @@ end
 
 
 fprintf('\n\nCOMPLETED \n');
+cd(codeDir);
 
 
