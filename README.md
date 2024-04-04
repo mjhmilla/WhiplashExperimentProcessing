@@ -8,135 +8,135 @@ This repository contains a series of scripts to process kinematic and electromyo
 
 Once all of the individual participant zip files have been unzipped the data2022 directory should have the following subfolders:
 
-> calibration_participant01_participant04/
-> calibration_participant05_participant09/
-> calibration_participant10_participant15/
-> calibration_participant16_participant21/
-> participant01/
-> participant02/
-> participant03/
-> participant04/
-> participant05/
-> participant06/
-> participant07/
-> participant08/
-> participant09/
-> participant10/
-> participant11/
-> participant12/
-> participant13/
-> participant14/
-> participant15/
-> participant16/
-> participant17/
-> participant18/
-> participant19/
-> participant20/
-> participant21/
-> protocol/
-> domeSignalliste.xlsx
+* calibration_participant01_participant04/
+* calibration_participant05_participant09/
+* calibration_participant10_participant15/
+* calibration_participant16_participant21/
+* participant01/
+* participant02/
+* participant03/
+* participant04/
+* participant05/
+* participant06/
+* participant07/
+* participant08/
+* participant09/
+* participant10/
+* participant11/
+* participant12/
+* participant13/
+* participant14/
+* participant15/
+* participant16/
+* participant17/
+* participant18/
+* participant19/
+* participant20/
+* participant21/
+* protocol/
+* domeSignalliste.xlsx
 
 
 2. Download and unzip the participant data from the 2023 experiment into the folder 'data2023' in the git repository. The data is found here: **add link to data**
 
 Once all of the individual participant zip files have been unzipped the data2023 directory should have the following subfolders :
 
-> optiTrackCalibration_participant01_participant06/
-> optiTrackCalibration_participant07_participant12/
-> optiTrackCalibration_participant13_participant18/
-> optiTrackCalibration_participant19_participant24/
-> optiTrackCalibration_participant25_participant28/
-> participant01/
-> participant02/
-> participant03/
-> participant04/
-> participant05/
-> participant06/
-> participant07/
-> participant08/
-> participant09/
-> participant10/
-> participant11/
-> participant12/
-> participant13/
-> participant14/
-> participant15/
-> participant16/
-> participant17/
-> participant18/
-> participant19/
-> participant20/
-> participant21/
-> participant22/
-> participant23/
-> participant24/
-> participant25/
-> participant26/
-> participant27/
-> participant28/
-> protocol/
-> README.txt
+* optiTrackCalibration_participant01_participant06/
+* optiTrackCalibration_participant07_participant12/
+* optiTrackCalibration_participant13_participant18/
+* optiTrackCalibration_participant19_participant24/
+* optiTrackCalibration_participant25_participant28/
+* participant01/
+* participant02/
+* participant03/
+* participant04/
+* participant05/
+* participant06/
+* participant07/
+* participant08/
+* participant09/
+* participant10/
+* participant11/
+* participant12/
+* participant13/
+* participant14/
+* participant15/
+* participant16/
+* participant17/
+* participant18/
+* participant19/
+* participant20/
+* participant21/
+* participant22/
+* participant23/
+* participant24/
+* participant25/
+* participant26/
+* participant27/
+* participant28/
+* protocol/
+* README.txt
 
 3. Download an unzip the OpenSim files for each participant into the folder 'opensim2022' in the git repository. The data is found here: (update link).
 
 Once all of the individual zip files have been unzipped the opensim2022 directory should have the following subfolders:
 
-> models/
-> participant01/
-> participant02/
-> participant03/
-> participant04/
-> participant05/
-> participant06/
-> participant08/
-> participant10/
-> participant11/
-> participant12/
-> participant13/
-> participant14/
-> participant16/
-> participant17/
-> participant18/
-> participant19/
-> participant20/
-> participant21/
+* models/
+* participant01/
+* participant02/
+* participant03/
+* participant04/
+* participant05/
+* participant06/
+* participant08/
+* participant10/
+* participant11/
+* participant12/
+* participant13/
+* participant14/
+* participant16/
+* participant17/
+* participant18/
+* participant19/
+* participant20/
+* participant21/
 
 Where 'models' should have these files
 
-> Generic_RT_new_joint_22_6dof_neck_markers_c5_pitch2_range.osim
-> Geometry/
-> IK_Setup.xml
-> older_versions/
-> Scale_Setup.xml
-> subject01_generic.osim
-> subject02_generic.osim
-> subject03_generic.osim
-> subject04_generic.osim
-> subject05_generic.osim
-> subject06_generic.osim
-> subject08_generic.osim
-> subject10_generic.osim
-> subject11_generic.osim
-> subject12_generic.osim
-> subject13_generic.osim
-> subject14_generic.osim
-> subject16_generic.osim
-> subject17_generic.osim
-> subject18_generic.osim
-> subject19_generic.osim
-> subject20_generic.osim
-> subject21_generic.osim
-> Vasavada3DofNeckCoordinateCouplerConstraintCoefficients.ods
+* Generic_RT_new_joint_22_6dof_neck_markers_c5_pitch2_range.osim
+* Geometry/
+* IK_Setup.xml
+* older_versions/
+* Scale_Setup.xml
+* subject01_generic.osim
+* subject02_generic.osim
+* subject03_generic.osim
+* subject04_generic.osim
+* subject05_generic.osim
+* subject06_generic.osim
+* subject08_generic.osim
+* subject10_generic.osim
+* subject11_generic.osim
+* subject12_generic.osim
+* subject13_generic.osim
+* subject14_generic.osim
+* subject16_generic.osim
+* subject17_generic.osim
+* subject18_generic.osim
+* subject19_generic.osim
+* subject20_generic.osim
+* subject21_generic.osim
+* Vasavada3DofNeckCoordinateCouplerConstraintCoefficients.ods
 
 and each participant folder should have these contents:
 
-> analyze/
-> Geometry/
-> ik/
-> opensim.log
-> participant_01_Scale_Setup.xml
-> postprocessing/
-> subject01_scaled.osim
+* analyze/
+* Geometry/
+* ik/
+* opensim.log
+* participant_01_Scale_Setup.xml
+* postprocessing/
+* subject01_scaled.osim
 
 
 4. Run the following scripts to test the EMG processing functionality
