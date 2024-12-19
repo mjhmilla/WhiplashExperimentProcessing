@@ -9,18 +9,27 @@
 % that contains the translation (x,y,z) and the quaternion 
 % coordinates (ux,uy,uz,theta).
 %%
+flag_useDefaultInitialization=0;
+if(exist('flag_outerLoopMode','var') == 0)
+    flag_useDefaultInitialization=1;
+else    
+    if(flag_outerLoopMode==0)
+        flag_useDefaultInitialization=1;
+    end
+end
+if(flag_useDefaultInitialization==1)
+    clc
+    clear all
+    close all;    
+    % 0: 2022 data set
+    % 1: 2023 data set
+    flag_dataSet = 0; 
+end
 
-% 0: 2022 data set
-% 1: 2023 data set
-flag_dataSet = 0;
 assert(flag_dataSet==0,'Error: Code has not yet been updated to work',...
     ' with the 2023 dataset, which includes a different marker layout.');
 
-
-clc;
-close all;
-clear all;
-
+skipTheseFolders = {'participant21_presentation'};
 %%
 % This function will go through each participant and each MOT file and
 % will:
@@ -53,19 +62,18 @@ clear all;
 % Pull in the modeling classes straight from the OpenSim distribution
 import org.opensim.modeling.*
 
-slashChar = '\';
 
 % Check that we are starting in the correct directory
-currentDirContents = dir;
-assert( contains( currentDirContents(1).folder,...
-                  ['WhiplashExperimentProcessing_Jakob',slashChar,'code'])==1,...
-        ['Error: script must be started in the code directory in'...
-        ' WhiplashExperimentProcessing']);
+localPath=pwd();
+[parentFolderPath,parentFolder] = fileparts(localPath);
+
+assert(contains(parentFolder,'code'));
+assert(contains(parentFolderPath,'WhiplashExperimentProcessing'));
 
 addpath('algorithms/');
 addpath('inputOutput/');
 
-codeDir = currentDirContents(1).folder;
+codeDir = pwd;
 cd ..;
 cd 'opensim2022';
 dataDir = pwd;
@@ -89,7 +97,14 @@ dataDirContents = dir;
 %            not have the words 'first_step' in it.
 %%
 for indexDataDir = 1:1:length(dataDirContents)
-    if(contains(dataDirContents(indexDataDir).name,'participant'))
+    flag_ignoreFolder=0;
+    for indexIgnore = 1:1:length(skipTheseFolders)
+        if(contains(dataDirContents(indexDataDir).name,skipTheseFolders{indexIgnore}))
+            flag_ignoreFolder=1;
+        end
+    end
+
+    if(contains(dataDirContents(indexDataDir).name,'participant') && flag_ignoreFolder==0)
         participantDir = fullfile(dataDirContents(indexDataDir).folder,...
                                   dataDirContents(indexDataDir).name);
 
@@ -499,5 +514,6 @@ end
 
 
 fprintf('\n\nCOMPLETED \n');
+cd(codeDir);
 
 

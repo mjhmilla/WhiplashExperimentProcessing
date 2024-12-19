@@ -1,15 +1,31 @@
-clc;
-close all;
-clear all;
+flag_useDefaultInitialization=0;
+if(exist('flag_outerLoopMode','var') == 0)
+    flag_useDefaultInitialization=1;
+else    
+    if(flag_outerLoopMode==0)
+        flag_useDefaultInitialization=1;
+    end
+end
+if(flag_useDefaultInitialization==1)
+    clc
+    clear all
+    close all;    
+    % 0: 2022 data set
+    % 1: 2023 data set
+    flag_dataSet = 0; 
+end
 
 flag_plotMarkerData=1;
 flag_plotRawMarkerData=0;
+
 
 flag_plotInterpolatedMarkers        = 0;
 flag_plotInterpolatedRigidBodies    = 0;
 flag_exportRigidBodyMarkers         = 1;
 
 flag_useDeprecatedOffset            = 1;
+
+
 % if flag_useDeprecatedOffset is 0 then,
 %---------------------------------
 % Evaluates the offset between the Mortensen data set and the 
@@ -45,6 +61,39 @@ figInput=figure;
 % interpolated using calculated position of the equivalent rigid body
 % marker
 %%
+
+%%
+% Data set dependent variables
+%%
+%Check that Matlab is currently in the code directory
+localPath=pwd();
+[parentFolderPath,parentFolder] = fileparts(localPath);
+
+assert(contains(parentFolder,'code'));
+assert(contains(parentFolderPath,'WhiplashExperimentProcessing'));
+
+whiplashFolder= parentFolderPath;
+codeFolder=localPath;
+
+switch(flag_dataSet)
+	case 0
+		dataSetFolder = 'data2022';
+		outputSetFolder='output2022';        
+		numberOfParticipants=21;
+
+        
+	case 1
+		dataSetFolder = 'data2023';
+		outputSetFolder='output2023';
+		numberOfParticipants=28;    
+        
+
+		disp('Important: the TRU_L and TRU_R are really SCP_L and SCP_R');
+        disp('Important: the head accelerometer was never attached to the head. (Matts fault)');
+		
+	otherwise
+		assert(0,'Error: flag_dataSet must be 0 or 1');
+end
 
 flag_filterMarkerPositions  = 1;
 lowPassFilterFrequency      = 10; %As in 10 Hz.
@@ -121,16 +170,12 @@ newMarkerName = ...
 assert( ~(flag_plotInterpolatedMarkers ...
             && flag_plotInterpolatedRigidBodies));
 
-% / : linux
-% \ : windows
-slashChar = '/';
 
 %%
 %Check that we're in the correct directory
 %%
-cd('/home/mjhmilla/dev/projectsBig/stuttgart/FKFS/WhiplashExperimentProcessing/code');
 localPath = pwd();
-idxSlash = strfind(localPath,slashChar);
+idxSlash = strfind(localPath,filesep);
 parentFolder      = localPath(1,idxSlash(end):end);
 grandParentFolder = localPath(1,idxSlash(end-1):idxSlash(end));
 assert(contains(parentFolder,'code'));
@@ -142,13 +187,11 @@ codeFolder=localPath;
 %%
 % Folders
 %%
-addpath(['algorithms',slashChar]);
-addpath(['inputOutput',slashChar]);
+addpath(['algorithms',filesep]);
+addpath(['inputOutput',filesep]);
 addpath(codeFolder);
 
-dataDir             = sprintf('..%sdata%s',slashChar,slashChar);
-dataDir(strfind(dataDir,'/'))=slashChar;
-
+dataDir             = sprintf('..%s%s%s',filesep,dataSetFolder,filesep);
 
 cd(dataDir);
 dayFolders = dir();
@@ -158,7 +201,7 @@ cd(dataDir);
 dataDir = pwd();
 
 indexParticipant=0;
-for indexParticipant=1:1:18
+for indexParticipant=1:1:numberOfParticipants
 
     participantFolderStr = num2str(indexParticipant);
     if(length(participantFolderStr)<2)
@@ -168,7 +211,7 @@ for indexParticipant=1:1:18
     cd(dataDir);
     cd(participantFolderStr);
     participantDir = pwd;
-    cd(sprintf('car%soptitrack%scsv%s',slashChar,slashChar,slashChar));
+    cd(sprintf('car%soptitrack%scsv%s',filesep,filesep,filesep));
 
     dataFiles = dir();
 
@@ -318,7 +361,7 @@ for indexParticipant=1:1:18
                 assert(strcmp(fileName(1,(end-3):end),'.csv'));
                 fileName(1,(end-3):end)='.trc';
                 t0=tic;
-                trcFilePath = [sprintf('..%strc%s',slashChar,slashChar),fileName];
+                trcFilePath = [sprintf('..%strc%s',filesep,filesep),fileName];
                 success = writeTRCFile(trcFilePath, ...
                             frameTimeData, rigidBodyMarkerData,...
                             motiveHeader, newMarkerName,...
@@ -329,7 +372,7 @@ for indexParticipant=1:1:18
                 fileNameRaw = fileName(1,1:(end-4));
                 fileNameRaw = [fileNameRaw,'_raw.trc'];
                 t0=tic;
-                trcFilePath = [sprintf('..%strc%s',slashChar,slashChar),fileNameRaw];
+                trcFilePath = [sprintf('..%strc%s',filesep,filesep),fileNameRaw];
                 success = writeTRCFile(trcFilePath, ...
                             frameTimeData, rawLabelledMarkerData,...
                             motiveHeader, newMarkerName,...
@@ -348,3 +391,4 @@ for indexParticipant=1:1:18
         end
     end
 end
+cd(codeFolder);

@@ -85,9 +85,9 @@ for trial= 1:nTrials
  %% ------------------ IK for first frame---------------- %%
 
     model.updCoordinateSet().get('gndpitch').setDefaultLocked(true);
-    model.updCoordinateSet().get('spine_tx').setDefaultLocked(false);
-    model.updCoordinateSet().get('spine_ty').setDefaultLocked(false);
-    model.updCoordinateSet().get('spine_tz').setDefaultLocked(false);
+    model.updCoordinateSet().get('gndx').setDefaultLocked(false);
+    model.updCoordinateSet().get('gndy').setDefaultLocked(false);
+    model.updCoordinateSet().get('gndz').setDefaultLocked(false);
 
     %first time frame
     first_frame= 0.005;
@@ -114,15 +114,15 @@ for trial= 1:nTrials
     spine_coordinates = osimTableToStruct(TimeSeriesTable(spine_file));
 
 %% ------- Place the model to ik-result from first frame-----%%
-    model.updCoordinateSet().get('spine_tx').setDefaultValue(spine_coordinates.spine_tx);
-    model.updCoordinateSet().get('spine_ty').setDefaultValue(spine_coordinates.spine_ty);
-    model.updCoordinateSet().get('spine_tz').setDefaultValue(spine_coordinates.spine_tz);
+    model.updCoordinateSet().get('gndx').setDefaultValue(spine_coordinates.gndx);
+    model.updCoordinateSet().get('gndy').setDefaultValue(spine_coordinates.gndy);
+    model.updCoordinateSet().get('gndz').setDefaultValue(spine_coordinates.gndz);
 
  %% ---------------- Changing the Coordinates--------------- %%
     model.updCoordinateSet().get('gndpitch').setDefaultLocked(false);
-    model.updCoordinateSet().get('spine_tx').setDefaultLocked(true);
-    model.updCoordinateSet().get('spine_ty').setDefaultLocked(true);
-    model.updCoordinateSet().get('spine_tz').setDefaultLocked(true);
+    model.updCoordinateSet().get('gndx').setDefaultLocked(true);
+    model.updCoordinateSet().get('gndy').setDefaultLocked(true);
+    model.updCoordinateSet().get('gndz').setDefaultLocked(true);
 
  %% ------------------ IK for whole remaining trial ---------------- %%
 

@@ -1,11 +1,20 @@
-clc;
-close all;
-clear all;
+flag_useDefaultInitialization=0;
+if(exist('flag_outerLoopMode','var') == 0)
+    flag_useDefaultInitialization=1;
+else    
+    if(flag_outerLoopMode==0)
+        flag_useDefaultInitialization=1;
+    end
+end
+if(flag_useDefaultInitialization==1)
+    clc
+    clear all
+    close all;    
+    % 0: 2022 data set
+    % 1: 2023 data set
+    flag_dataSet = 0; 
+end
 
-
-% 0: 2022 data set
-% 1: 2023 data set
-flag_dataSet   = 0;
 flag_plotOnset = 1;
 
 
@@ -642,5 +651,6 @@ for indexParticipant=participantFirst:1:participantLast
 end
 
 
+cd(codeFolder);
 
 

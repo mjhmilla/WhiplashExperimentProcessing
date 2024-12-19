@@ -1,36 +1,39 @@
-%%main_emgComparison
-clc;
-close all;
-clear all;
+flag_useDefaultInitialization=0;
+if(exist('flag_outerLoopMode','var') == 0)
+    flag_useDefaultInitialization=1;
+else    
+    if(flag_outerLoopMode==0)
+        flag_useDefaultInitialization=1;
+    end
+end
+if(flag_useDefaultInitialization==1)
+    clc
+    clear all
+    close all;    
+    % 0: 2022 data set
+    % 1: 2023 data set
+    flag_dataSet = 0; 
+end
 
 flag_subtractMeanHeadOnsetTimesFrom2023EmgData = 0;
-flag_calculateMeanAndExtraColums=1;
-% flag_putEachConditionInAnExtraColumn=1;
 
 %Notes to improve participantEmgData
 % 1. Get rid of the first 2 elements
 % 2. Change flag_ignoreTrial to flag_useTrial
 
-% 0: 2022 data set
-% 1: 2023 data set
-flag_dataSet    = 1;
-
-
 dataSet2022 = 0; %Constant: do not change
 dataSet2023 = 1; %Constant: do not change
 
-participantFirst= 2;
-participantLast = 28;
+
 
 percentileSet       = [0.05;0.25;0.5;0.75;0.95];
 
 %Removal of invalid data
 flag_removeNegativeValues  = 1;
-maxAllowedNormEMGAmplitude = 1.5;
+maxAllowedNormEMGAmplitude = 1.0;
 
 maxBumperToEmgOnsetTime_BraultSiegmundWheeler2000 = 0.104; 
 maxAllowedHeadToEMGOnsetTime  = 0.150;
-maxAllowedCarToEMGOnsetTime_Kemptner2022 = 0.5;
 
 %Input
 noDataNumber = -1;
@@ -53,16 +56,16 @@ disp('Participant 1 in 2023 breaks left/right analysis');
 disp('because they did not have 3 repeats collected. Blocks X and Y need');
 disp('to be updated');
 conditionsToCompare(1).condition='nominal';
-conditionsToCompare(1).carDirection='Left';
+conditionsToCompare(1).carDirection='Forward';
 
 conditionsToCompare(2).condition='seatBack';
-conditionsToCompare(2).carDirection='Left';
+conditionsToCompare(2).carDirection='Forward';
 
 conditionsToCompare(3).condition='nominal';
-conditionsToCompare(3).carDirection='Right';
+conditionsToCompare(3).carDirection='Backwards';
 
 conditionsToCompare(4).condition='seatBack';
-conditionsToCompare(4).carDirection='Right';
+conditionsToCompare(4).carDirection='Backwards';
 
 %%
 % The ordering of these names define the code that is used in file 
@@ -97,37 +100,12 @@ muscleNames = {'STR:L','STR:R','TRO:L','TRO:R','SPL:L','SPL:R'};
 %%
 % SPSS Table: If needed, update the column labels
 %%
-switch flag_calculateMeanAndExtraColums
-    case 0
-        spssTable.columnLabels = {'id','sex','seatPosition','direction','muscle','onsetTime','amplitude'};
-    case 1
-        spssTable.columnLabels ={'id','sex','muscle'};
-        positionOnsetLabels=2;
-        positionAmplitudeLabels=3;
-        for indexCondition=1:1:numberOfConditions
-%             for indexMuscle=firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-                positionOnsetLabels=positionOnsetLabels+2;
-                positionAmplitudeLabels=positionAmplitudeLabels+2 ;
-% 
-%                 nameMuscle = char(muscleNames(indexMuscle));
-                nameCondition = char(conditionsToCompare(indexCondition).condition);
-                nameCarDirection = char(conditionsToCompare(indexCondition).carDirection);
-
-                nameOnsetLabels = ['Onset', nameCondition , nameCarDirection];
-                nameAmplitudeLabels = ['Amplitude', nameCondition , nameCarDirection];
-
-                spssTable.columnLabels(positionOnsetLabels)={nameOnsetLabels};
-                spssTable.columnLabels(positionAmplitudeLabels)={nameAmplitudeLabels};
-%             end
-        end
-end
+spssTable.columnLabels = {'id','sex','seatPosition','direction','muscle','onsetTime','amplitude'};
 spssTable.data = [];
 
 %Local folders
 addpath('inputOutput');
 addpath('algorithms');
-
-
 
 %Check that Matlab is currently in the code directory
 localPath=pwd();
@@ -148,11 +126,15 @@ switch(flag_dataSet)
 		dataSetFolder = fullfile(whiplashFolder,'data2022');
 		outputSetFolder=fullfile(whiplashFolder,'output2022');        
 		numberOfParticipants=21;
+        participantFirst= 1;
+        participantLast = 21;        
 
 	case 1
 		dataSetFolder = fullfile(whiplashFolder,'data2023');
 		outputSetFolder=fullfile(whiplashFolder,'output2023');
-		numberOfParticipants=28;    
+		numberOfParticipants=28;  
+        participantFirst= 1;
+        participantLast = 28;        
 		disp('Important: the TRU_L and TRU_R are really SCP_L and SCP_R');
         disp('Important: the head accelerometer was never attached to the head. (Matts fault)');
  	otherwise
@@ -185,86 +167,44 @@ outputAmplitude(numberOfConditions)...
 % 2. Makes a vector of indices so that all of the structs data can be put into
 %    a single vector across  participants x repeats
 %
-    indexParticipant=2;
-    repeatsPerCondition = zeros(1,length(conditionsToCompare));
-    vectorStartIndexMap = zeros(length(conditionsToCompare), participantLast);
-    
-    for i=1:1:length(conditionsToCompare)
-        repeatsPerCondition(:,i) =...
-            height(dataParticipantConditions(indexParticipant).conditions(i).times);
-        vectorStartIndexMap(i,:) = ...
-            [1:repeatsPerCondition(i):participantLast*repeatsPerCondition(i)];
-    
-         outputOnsetTimes(i).id=                  ones(repeatsPerCondition...
-                                                                    (:,i)*participantLast,1).*noDataNumber;
-         outputOnsetTimes(i).allMuscles=    ones(repeatsPerCondition...
-                                                                    (:,i)*participantLast,numberOfMuscles).*noDataNumber;
-         outputAmplitude(i).id=                     ones(repeatsPerCondition...
-                                                                    (:,i)*participantLast,1).*noDataNumber;
-         outputAmplitude(i).allMuscles=       ones(repeatsPerCondition...
-                                                                    (:,i)*participantLast,numberOfMuscles).*noDataNumber;
-    
+indexParticipant=1;
+repeatsPerCondition = zeros(1,length(conditionsToCompare));
+vectorStartIndexMap = zeros(length(conditionsToCompare), participantLast);
+
+for i=1:1:length(conditionsToCompare)
+    repeatsPerCondition(:,i) =...
+        height(dataParticipantConditions(indexParticipant).conditions(i).times);
+    vectorStartIndexMap(i,:) = ...
+        [1:repeatsPerCondition(i):participantLast*repeatsPerCondition(i)];
+end 
+
+%
+% This function fishes out all of the onset times for a specific muscle
+% and groups it across the entire data set but separated by condition.
+%
+% Consider replacing this with an accumulation.
+%
+disp('Block Y. Update this code to something easier to understand');
+for idxP = participantFirst:1:participantLast
+    for idxC=1:1:length(conditionsToCompare)        
+        for idxM = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
+
+            indexStart = vectorStartIndexMap(idxC,idxP);
+            indexEnd   = indexStart+repeatsPerCondition(1,idxC)-1;
+
+            outputOnsetTimes(idxC).id(indexStart:indexEnd,1) = idxP;
+
+            outputOnsetTimes(idxC).allMuscles(indexStart:indexEnd,idxM)...
+                = dataParticipantConditions(idxP).conditions(idxC).times(:,idxM);
+
+            outputAmplitude(idxC).id(indexStart:indexEnd,1) = idxP;            
+
+            outputAmplitude(idxC).allMuscles(indexStart:indexEnd,idxM)...
+                = dataParticipantConditions(idxP).conditions(idxC).magnitudes(:,idxM);
+            
+        end
     end 
-    
-    %
-    % This function fishes out all of the onset times for a specific muscle
-    % and groups it across the entire data set but separated by condition.
-    %
-    % Consider replacing this with an accumulation.
-    %
-    
-    % outputOnsetTimes(idxC).id(indexStart:indexEnd,1) = idxP;
-    % 
-    % outputOnsetTimes(idxC).allMuscles(indexStart:indexEnd,idxM)...
-    %     = dataParticipantConditions(idxP).conditions(idxC).times(:,idxM);
-    % 
-    % outputAmplitude(idxC).id(indexStart:indexEnd,1) = idxP;            
-    % 
-    % outputAmplitude(idxC).allMuscles(indexStart:indexEnd,idxM)...
-    %     = dataParticipantConditions(idxP).conditions(idxC).magnitudes(:,idxM);
-    
-    disp('Block Y. Update this code to something easier to understand');
-    for idxP = participantFirst:1:participantLast
-        for idxC=1:1:length(conditionsToCompare)        
-            for idxM = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-    
-                indexStart = vectorStartIndexMap(idxC,idxP);
-                indexEnd   = indexStart+repeatsPerCondition(1,idxC)-1;
-    
-                outputOnsetTimes(idxC).id(indexStart:indexEnd,1) = idxP;
-    
-                outputOnsetTimes(idxC).allMuscles(indexStart:indexEnd,idxM)...
-                    = dataParticipantConditions(idxP).conditions(idxC).times(:,idxM);
-    
-                outputAmplitude(idxC).id(indexStart:indexEnd,1) = idxP;            
-    
-                outputAmplitude(idxC).allMuscles(indexStart:indexEnd,idxM)...
-                    = dataParticipantConditions(idxP).conditions(idxC).magnitudes(:,idxM);
-                
-            end
-        end 
-    end 
-% elseif flag_calculateMeanForEachParticipant==1
-%      for idxP = participantFirst:1:participantLast
-%         for idxC=1:1:length(conditionsToCompare)        
-%             for idxM = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-%    
-%                 outputOnsetTimes(idxC).id(idxP,1)= idxP;
-% 
-%                 onsetTimesTemporary=dataParticipantConditions(idxP).conditions(idxC).times(:,idxM);
-%                 meanOnset=mean(onsetTimesTemporary);
-%                 outputOnsetTimes(idxC).allMuscles(idxP,idxM)=meanOnset;
-%     
-%                 outputAmplitude(idxC).id(idxP,1)= idxP;
-% 
-%                 amplitudesTemorary=dataParticipantConditions(idxP).conditions(idxC).magnitudes(:,idxM);
-%                 meanAmplitudes=mean(amplitudesTemorary);    
-%                 outputAmplitude(idxC).allMuscles(idxP,idxM)= meanAmplitudes;
-%                 
-%             end
-%         end 
-%     end 
- 
+end 
 
 
 if(flag_subtractMeanHeadOnsetTimesFrom2023EmgData==1)
@@ -310,88 +250,38 @@ for indexCondition = 1:1:numberOfConditions
                     max(contains(directionNames,...
                                  conditionsToCompare(indexCondition).carDirection));
 
-%             meanCarHeadOnsetTimeByDirection = meanHeadOnsetTimes2022(1,idDirection);
-% 
-%             maxAllowedCarToEMGOnsetTime = meanCarHeadOnsetTimeByDirection ...
-%                                         + maxAllowedHeadToEMGOnsetTime;
+            meanCarHeadOnsetTimeByDirection = meanHeadOnsetTimes2022(1,idDirection);
 
-            [validIdOnsetTimes,validIdAmplitudes, validDataOnsetTimes, validDataAmplitudes] = ...
-                newExtractValidData(...
+            maxAllowedCarToEMGOnsetTime = meanCarHeadOnsetTimeByDirection ...
+                                        + maxAllowedHeadToEMGOnsetTime;
+
+            [validId, validDataOnsetTimes, validDataAmplitudes] = ...
+                extractValidData(...
                         outputOnsetTimes(indexCondition).id(:,1),...
-                        outputAmplitude(indexCondition).id(:,1),...
                         outputOnsetTimes(indexCondition).allMuscles(:,indexMuscle),...
                         outputAmplitude(indexCondition).allMuscles(:,indexMuscle),...
                         maxAllowedNormEMGAmplitude,...
-                        maxAllowedCarToEMGOnsetTime_Kemptner2022,...
-                        noDataNumber,... 
+                        maxAllowedCarToEMGOnsetTime,...
+                        noDataNumber,...
                         flag_removeNegativeValues);
 
 
-%             for indexPercentile = 1:1:length(percentileSet)        
-%                     percentilesOnsetTime(indexPercentile,indexMuscle) ...
-%                          = getPercentiles(validDataOnsetTimes,...
-%                                 percentileSet(indexPercentile));
-%         
-%                     percentilesAmplitude(indexPercentile,indexMuscle) ...
-%                          = getPercentiles(validDataAmplitudes,...
-%                                 percentileSet(indexPercentile));
-%                      
-%             end
+            for indexPercentile = 1:1:length(percentileSet)        
+                    percentilesOnsetTime(indexPercentile,indexMuscle) ...
+                         = getPercentiles(validDataOnsetTimes,...
+                                percentileSet(indexPercentile));
+        
+                    percentilesAmplitude(indexPercentile,indexMuscle) ...
+                         = getPercentiles(validDataAmplitudes,...
+                                percentileSet(indexPercentile));
+                     
+            end
 
             
 
-            outputValidData(indexCondition,indexMuscle).idOnsetTimes = validIdOnsetTimes;
-            outputValidData(indexCondition,indexMuscle).idAmplitudes = validIdAmplitudes;
-            outputValidData(indexCondition,indexMuscle).validDataOnsetTimes = validDataOnsetTimes;
-            outputValidData(indexCondition,indexMuscle).validDataAmplitudes = validDataAmplitudes;
-
-            if flag_calculateMeanAndExtraColums == 1
-                meanOnsetTimes=ones(participantLast,1).*noDataNumber;
-                meanAmplitudes=ones(participantLast,1).*noDataNumber;
-                participantIdForMean=ones(participantLast,1).*noDataNumber;
-%                 meanOnsetTimes=[];
-%                 meanAmplitudes=[];
-%                 participantIdForMean=[];
-                for indexParticipant=participantFirst:1:participantLast
-                    if exist('amplitudesParticipant','var') == 1
-                    clear amplitudesParticipant
-                    end
-                     if exist('onsetTimesParticipant','var') == 1
-                        clear onsetTimesParticipant
-                     end
-                 amplitudesParticipant=[];
-                 onsetTimesParticipant=[];
-                    for indexTrial=1:1:length(outputValidData(indexCondition,indexMuscle).idOnsetTimes)
-                        if outputValidData(indexCondition,indexMuscle).idOnsetTimes(indexTrial) == indexParticipant
-                            onsetTimesParticipant=[onsetTimesParticipant,outputValidData(indexCondition,indexMuscle).validDataOnsetTimes(indexTrial)];
-                        end
-                    end
-                    for indexTrial=1:1:length(outputValidData(indexCondition,indexMuscle).idAmplitudes)
-                        if outputValidData(indexCondition,indexMuscle).idAmplitudes(indexTrial) == indexParticipant
-                            amplitudesParticipant=[amplitudesParticipant,outputValidData(indexCondition,indexMuscle).validDataAmplitudes(indexTrial)];
-                        end
-                    end
-                    if isempty(onsetTimesParticipant) == 0
-                        meanOnsetTimes(indexParticipant) = mean(onsetTimesParticipant);
-                    end
-                    if isempty(amplitudesParticipant) == 0
-                        meanAmplitudes(indexParticipant) = mean(amplitudesParticipant);
-%                     meanOnsetTimes=[meanOnsetTimes,mean(onsetTimesParticipant)];
-%                     meanAmplitudes=[meanAmplitudes,mean(amplitudesParticipant)];
-%                     participantIdForMean=[participantIdForMean,indexParticipant];
-                    end
-                end
-%             validId=participantIdForMean';
-            validId=participantFirst:1:participantLast;
-            validId=validId';
-            validDataOnsetTimes=meanOnsetTimes;
-            validDataAmplitudes=meanAmplitudes;
             outputValidData(indexCondition,indexMuscle).id = validId;
             outputValidData(indexCondition,indexMuscle).validDataOnsetTimes = validDataOnsetTimes;
             outputValidData(indexCondition,indexMuscle).validDataAmplitudes = validDataAmplitudes;
-
-       
-            end
             
 
             %Add the additional fields that will be written to the file given to SPSS
@@ -421,7 +311,6 @@ for indexCondition = 1:1:numberOfConditions
             
             spssSubTable =[];
             spssRow = [];
-            if flag_calculateMeanAndExtraColums==0
             for i=1:1:length(validId)
                 participantData = getParticipantDataFebruary2023(validId(i,1));
                 
@@ -443,7 +332,6 @@ for indexCondition = 1:1:numberOfConditions
                 %             rows
                 %%
 
-                
                 spssRow = zeros(1,length(spssTable.columnLabels));
                 spssRow(1,1) = validId(i,1);
                 spssRow(1,2) = idSex;
@@ -454,59 +342,18 @@ for indexCondition = 1:1:numberOfConditions
                 spssRow(1,7) = validDataAmplitudes(i,1);
 
                 spssTable.data =[spssTable.data; spssRow];
-
-              
-
-            end
-
             end
 
 
 
         end 
 
-%         for indexPercentile = 1:1:length(percentileSet)        
-%         percentilesOnsetTime(indexPercentile,indexMuscle) ...
-%              = getPercentiles(validDataOnsetTimes,...
-%                     percentileSet(indexPercentile));
-% 
-%         percentilesAmplitude(indexPercentile,indexMuscle) ...
-%              = getPercentiles(validDataAmplitudes,...
-%                     percentileSet(indexPercentile));
-%                  
-%         end
-%         outputPercentiles(indexCondition).percentilesOnsetTimes = percentilesOnsetTime;
-%         outputPercentiles(indexCondition).percentilesAmplitudes = percentilesAmplitude;            
+        outputPercentiles(indexCondition).percentilesOnsetTimes = percentilesOnsetTime;
+        outputPercentiles(indexCondition).percentilesAmplitudes = percentilesAmplitude;            
        
 end 
 
-if flag_calculateMeanAndExtraColums == 1
-       spssRow = zeros(numberOfParticipants*6,length(spssTable.columnLabels));
-       positionOnsetLabels=2;
-       positionAmplitudeLabels=3;
-       
-    for indexCondition=1:1:numberOfConditions
-        positionOnsetLabels=positionOnsetLabels+2;
-        positionAmplitudeLabels=positionAmplitudeLabels+2;
-        startPos=participantFirst;
-        for indexParticipant=participantFirst:1:participantLast
-             participantData = getParticipantDataFebruary2023(indexParticipant);
-             [val,idSex] = max(contains(sexNames,participantData.sex));
-                for indexMuscle=firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
-                    positionMuscle=startPos+indexMuscle-1;
-                    spssRow(positionMuscle,1) = indexParticipant;
-                    spssRow(positionMuscle,2) = idSex;
-                    spssRow(positionMuscle,3) = indexMuscle;
-                    spssRow(positionMuscle,positionOnsetLabels)=...
-                                    outputValidData(indexCondition,indexMuscle).validDataOnsetTimes(indexParticipant);
-                    spssRow(positionMuscle,positionAmplitudeLabels)=...
-                                    outputValidData(indexCondition,indexMuscle).validDataAmplitudes(indexParticipant);
-                end
-                startPos=startPos+numberOfMuscles;
-        end
-    end
-    spssTable.data=spssRow;
-end
+
 %%
 % Write the SPSS table to file
 %%
@@ -729,4 +576,6 @@ for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
     probabilityOnsetTimes(indexMuscle) = ranksum(outputValidData(1,indexMuscle).validDataOnsetTimes,outputValidData(2,indexMuscle).validDataOnsetTimes);
     probabilityAmplitudes(indexMuscle) = ranksum(outputValidData(1,indexMuscle).validDataAmplitudes,outputValidData(2,indexMuscle).validDataAmplitudes);
 end 
+
+cd(codeFolder);
 

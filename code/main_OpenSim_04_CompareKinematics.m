@@ -17,13 +17,22 @@
 %
 %%
 
-close all;
-clear all;
-clc;
-
-% 0: 2022 data set
-% 1: 2023 data set
-flag_dataSet   = 0;
+flag_useDefaultInitialization=0;
+if(exist('flag_outerLoopMode','var') == 0)
+    flag_useDefaultInitialization=1;
+else    
+    if(flag_outerLoopMode==0)
+        flag_useDefaultInitialization=1;
+    end
+end
+if(flag_useDefaultInitialization==1)
+    clc
+    clear all
+    close all;    
+    % 0: 2022 data set
+    % 1: 2023 data set
+    flag_dataSet = 0; 
+end
 assert(flag_dataSet==0,'Error: Code has not yet been updated to work',...
     ' with the 2023 dataset, which includes a different marker layout.');
 
@@ -62,16 +71,28 @@ switch flag_dataSet
     otherwise assert(0,'Error: unknown dataset');
 end
 
+skipTheseFolders = {'participant21_presentation'};
+
 cd(opensimDir);
 dataDirContents = dir;
 participantFolderList = [];
 for i=1:1:length(dataDirContents)
+
+
+
+    flag_ignoreFolder=0;
+    for indexIgnore = 1:1:length(skipTheseFolders)
+        if(contains(dataDirContents(i).name,skipTheseFolders{indexIgnore}))
+            flag_ignoreFolder=1;
+        end
+    end
+
     if(dataDirContents(i).isdir==1 && ...
-       contains(dataDirContents(i).name,'participant'))
+       contains(dataDirContents(i).name,'participant') && flag_ignoreFolder==0)
        participantFolderList = ...
            [participantFolderList;...
             {dataDirContents(i).name} ];
-       here=1;
+           disp(dataDirContents(i).name);
     end
 end
 
@@ -196,6 +217,7 @@ raw_marker_all=struct([]);
 
 
 for indexParticipant = 1:1:length(participantFolderList)
+
     
     disp(['Processing: ', participantFolderList{indexParticipant}]);
     participantFolder = participantFolderList{indexParticipant};
@@ -648,4 +670,4 @@ for group= 1:length(groupnames)
     muscle_group_names.(groupnames{group})= muscles_names(group_mus_idx{group});
 end
 
-
+cd(codeDir);

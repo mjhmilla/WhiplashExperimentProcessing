@@ -22,20 +22,34 @@
 %
 %%
 
-clear all;
-clc;
-close all;
+flag_useDefaultInitialization=0;
+if(exist('flag_outerLoopMode','var') == 0)
+    flag_useDefaultInitialization=1;
+else    
+    if(flag_outerLoopMode==0)
+        flag_useDefaultInitialization=1;
+    end
+end
+if(flag_useDefaultInitialization==1)
+    clc
+    clear all
+    close all;    
+    % 0: 2022 data set
+    % 1: 2023 data set
+    flag_dataSet = 0; 
+end
 
-% 0: 2022 data set
-% 1: 2023 data set
-flag_dataSet = 0;
+flag_useIKWithRegularizedPelvisMovement = 1;
+flag_applyIKToSmallTimeWindow           = 1;
+
 assert(flag_dataSet==0,'Error: Code has not yet been updated to work',...
     ' with the 2023 dataset, which includes a different marker layout.');
 
-flag_runIKTool      = 0;
+flag_runIKTool      = 1;
 flag_runAnalyzeTool = 1;
 
-runThisParticipant = [{'participant01'}];
+runThisParticipant = [{'participant01'}];%[{'participant17'}];
+runTheseTrials = [];%[2];
 
 % Pull in the modeling classes straight from the OpenSim distribution
 import org.opensim.modeling.*
@@ -46,7 +60,7 @@ currentDirectory    = pwd;
 
 assert( contains( currentDirContents(1).folder(1,(end-5):1:end),'code')==1,...
         'Error: script must be started in the code directory');
-
+codeDir = pwd;
 addpath('algorithms/');
 addpath('inputOutput/');
 
@@ -70,8 +84,9 @@ participantFolderList = [];
 
 if(isempty(runThisParticipant))
     for i=1:1:length(dataDirContents)
-        if(dataDirContents(i).isdir==1 && ...
-           contains(dataDirContents(i).name,'participant'))
+        if( dataDirContents(i).isdir==1 && ...
+            contains(dataDirContents(i).name,'participant') && ...
+            length(dataDirContents(i).name) == 13 )
            participantFolderList = ...
                [participantFolderList;...
                 {dataDirContents(i).name} ];
@@ -192,7 +207,7 @@ for indexParticipant=1:1:length(participantFolderList)
         
         % Tell Tool to use the loaded model
         ikTool.setModel(model);
-        
+        %methods(ikTool);
         % accuracy= ikTool.get_accuracy();
         % accuracy= accuracy/10;
         % ikTool.set_accuracy(accuracy);
@@ -201,13 +216,25 @@ for indexParticipant=1:1:length(participantFolderList)
         trialsTrc=ikTrials(find(cellfun(@isempty,regexp({ikTrials.name},'raw'))));
         numberOfTrcFiles = size(trialsTrc,1);
         
+        if(isempty(runTheseTrials)==0)
+            numberOfTrcFiles=length(runTheseTrials);
+        end
+
         % Loop through the trials
         for trial= 1: numberOfTrcFiles
         %     ikTrialsN
+            
+            if(isempty(runTheseTrials)==0)
+                markerFile = trialsTrc(runTheseTrials(1,trial)).name;
+            else
+                % Get the name of the file for this trial
+                markerFile = trialsTrc(trial).name;
+
+            end
+            
         
-            % Get the name of the file for this trial
-            markerFile = trialsTrc(trial).name;
-        
+            
+
             % Create name of trial from .trc file name
             name = regexprep(markerFile,'.trc','');
             fullpath = fullfile(trcDir, markerFile);
@@ -216,16 +243,110 @@ for indexParticipant=1:1:length(participantFolderList)
         
             % Get trc data to determine time range
             markerData = MarkerData(fullpath);
-        
+            %methods(markerData);
+
+            % Evaluate the acceleration of the GLA marker to get the time
+            % just before and after the pulse to process
+            idxGLA      = markerData.getMarkerIndex('GLA');
+            numFrames   = markerData.getNumFrames();
+            positionGLA = zeros(numFrames,3);
+            timeGLA     = zeros(numFrames,1);
+            dt =1/markerData.getDataRate();
+
+
+            for idxFrame=1:1:(numFrames)
+                markerFrame = markerData.getFrame(idxFrame-1);
+                positionGLA(idxFrame,:)=osimVec3ToArray(markerFrame.getMarker(idxGLA));
+                timeGLA(idxFrame,1)= dt*(idxFrame-1);
+            end
+
+            velocityGLA= zeros(numFrames,3);
+            accelerationGLA= zeros(numFrames,3);
+            
+            for idxAxis=1:1:3
+                velocityGLA(:,idxAxis) = calcCentralDifferenceDataSeries(timeGLA,positionGLA(:,idxAxis));
+                accelerationGLA(:,idxAxis) = calcCentralDifferenceDataSeries(timeGLA,velocityGLA(:,idxAxis));
+            end
+            velocityNormGLA = (velocityGLA(:,1).^2 ...
+                                + velocityGLA(:,2).^2 ...
+                                + velocityGLA(:,3).^2).^0.5;
+
+            [valMax, idxMax] = max(velocityNormGLA);
+            idxStart = max(1, round(idxMax - (1.0/dt)));
+            idxEnd   = min(numFrames,round(idxMax + (2.0/dt)));
+
+            timeStart = (idxStart-1)*dt;
+            timeEnd   = (idxEnd-1)*dt;
+
+            flag_debug=0;
+            if(flag_debug==1)
+                figDebug=figure;
+                subplot(3,1,1);
+                    plot(timeGLA,positionGLA(:,1),'r');
+                    hold on;
+                    plot(timeGLA,positionGLA(:,2),'g');
+                    hold on;
+                    plot(timeGLA,positionGLA(:,3),'b');
+                    hold on;
+                    xlabel('Time (s)');
+                    ylabel('Distance (mm)');
+                    title('GLA Position');
+                subplot(3,1,2);
+
+                    t0=timeGLA(idxStart,1);
+                    t1=timeGLA(idxEnd,1);
+                    a0=0;
+                    a1=valMax;
+
+                    fill([t0,t1,t1,t0,t0],[a0,a0,a1,a1,a0],[1,1,1].*0.75);
+                    hold on;
+
+
+                    plot(timeGLA,velocityGLA(:,1),'r');
+                    hold on;
+                    plot(timeGLA,velocityGLA(:,2),'g');
+                    hold on;
+                    plot(timeGLA,velocityGLA(:,3),'b');
+                    hold on;
+
+                    plot(timeGLA,velocityNormGLA,'k');
+                    hold on;
+
+                    xlabel('Time (s)');
+                    ylabel('Velocity (mm/s)');
+                    title('GLA Velocity');                    
+                subplot(3,1,3);
+
+                    plot(timeGLA,accelerationGLA(:,1),'r');
+                    hold on;
+                    plot(timeGLA,accelerationGLA(:,2),'g');
+                    hold on;
+                    plot(timeGLA,accelerationGLA(:,3),'b');
+                    hold on;
+                   
+                    xlabel('Time (s)');
+                    ylabel('Acceleration (mm/s^2)');
+                    title('GLA Acceleration');                    
+
+            end
+            
+ 
+
+
+            %idxStart=markerFile.
+            
+
+
             ikFirstFrame= fullfile(ikDir, [name '_ikFirstFrame.mot']);
             ikResults= fullfile(ikDir, [name '_ik.mot']);
         
             % fix gndpitch
             model.updCoordinateSet().get('gndpitch').setDefaultLocked(true);
-            model.updCoordinateSet().get('spine_tx').setDefaultLocked(false);
-            model.updCoordinateSet().get('spine_ty').setDefaultLocked(false);
-            model.updCoordinateSet().get('spine_tz').setDefaultLocked(false);
-        
+            model.updCoordinateSet().get('gndx').setDefaultLocked(false);
+            model.updCoordinateSet().get('gndy').setDefaultLocked(false);
+            model.updCoordinateSet().get('gndz').setDefaultLocked(false);
+
+
             %first time frame
             first_frame= 0.005;
         
@@ -240,7 +361,7 @@ for indexParticipant=1:1:length(participantFolderList)
         
             % Define Output Name
             ikTool.setOutputMotionFileName(ikFirstFrame);
-        
+
             % Run first IK
             ikTool.run();
         
@@ -249,19 +370,42 @@ for indexParticipant=1:1:length(participantFolderList)
             firstFrameCoord = osimTableToStruct(TimeSeriesTable(firstFrameFile));
         
             % Place the model to ik-result from first frame
-            model.updCoordinateSet().get('spine_tx').setDefaultValue(firstFrameCoord.spine_tx);
-            model.updCoordinateSet().get('spine_ty').setDefaultValue(firstFrameCoord.spine_ty);
-            model.updCoordinateSet().get('spine_tz').setDefaultValue(firstFrameCoord.spine_tz);
-          
+            model.updCoordinateSet().get('gndx').setDefaultValue(firstFrameCoord.gndx);
+            model.updCoordinateSet().get('gndy').setDefaultValue(firstFrameCoord.gndy);
+            model.updCoordinateSet().get('gndz').setDefaultValue(firstFrameCoord.gndz);
+            %model.updCoordinateSet().get('gndpitch').setDefaultValue(firstFrameCoord.gndpitch);
+            %model.updCoordinateSet().get('gndroll').setDefaultValue(firstFrameCoord.gndroll);
+            %model.updCoordinateSet().get('gndyaw').setDefaultValue(firstFrameCoord.gndyaw);
+
+
             % Changing the Coordinates Fixations
             model.updCoordinateSet().get('gndpitch').setDefaultLocked(false);
-            model.updCoordinateSet().get('spine_tx').setDefaultLocked(true);
-            model.updCoordinateSet().get('spine_ty').setDefaultLocked(true);
-            model.updCoordinateSet().get('spine_tz').setDefaultLocked(true);
+                        
+            model.updCoordinateSet().get('gndx').setDefaultLocked(true);
+            model.updCoordinateSet().get('gndy').setDefaultLocked(true);
+            model.updCoordinateSet().get('gndz').setDefaultLocked(true);
+
+            if(flag_useIKWithRegularizedPelvisMovement==1)
+                model.updCoordinateSet().get('gndpitch').setDefaultLocked(false);
+                model.updCoordinateSet().get('gndroll').setDefaultLocked(false);
+                model.updCoordinateSet().get('gndyaw').setDefaultLocked(false);
+                
+                model.updCoordinateSet().get('gndx').setDefaultLocked(false);
+                model.updCoordinateSet().get('gndy').setDefaultLocked(false);
+                model.updCoordinateSet().get('gndz').setDefaultLocked(false);                
+            end
+
+
         
             % IK for whole remaining trial 
             initial_time = markerData.getStartFrameTime();
             final_time = markerData.getLastFrameTime();
+            if(flag_applyIKToSmallTimeWindow==1)
+                initial_time=timeStart;
+                final_time=timeEnd;
+            end
+
+
             ikTool.setStartTime(initial_time);
             ikTool.setEndTime(final_time);
         
@@ -285,6 +429,8 @@ for indexParticipant=1:1:length(participantFolderList)
             ikMarkerSto= strrep(ikMarker,'_ik_model_marker_locations','_ikModelMarker.sto');
             copyfile(ikMarker, ikMarkerSto)
             delete(ikMarker);
+
+            here=1;
         
         end
         
@@ -338,4 +484,4 @@ for indexParticipant=1:1:length(participantFolderList)
         
     end
 end
-
+cd(codeDir);
