@@ -738,3 +738,4 @@ for indexMuscle = firstMuscleBiopacIndex:1:lastMuscleBiopacIndex
     probabilityAmplitudes(indexMuscle) = ranksum(outputValidData(1,indexMuscle).validDataAmplitudes,outputValidData(2,indexMuscle).validDataAmplitudes);
 end 
 
+

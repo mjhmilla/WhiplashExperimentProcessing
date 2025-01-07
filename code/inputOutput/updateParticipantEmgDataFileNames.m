@@ -62,4 +62,3 @@ for indexCondition = 1:1:length(participantCarMetaData.condition)
         end
     end
 end
-here=1;

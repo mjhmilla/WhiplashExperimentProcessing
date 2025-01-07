@@ -1,4 +1,3 @@
-
 % Pull in the modeling classes straight from the OpenSim distribution
 import org.opensim.modeling.*
 

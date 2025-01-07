@@ -431,9 +431,5 @@ cd(codeFolder);
 %    'Right', biopacSignalNorm(2,:),...
 %    'Flexion', biopacSignalNorm(3,:),...
 %    'Left', biopacSignalNorm(4,:));
-   
-                        
-                        
-                        
-                        
+
                         
