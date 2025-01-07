@@ -52,6 +52,11 @@ switch participantId
         participantCarData.ignoreTheseFileNumbers = [];                                           
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
+        %Marker data
+        participantCarData.scalingMarkerFile =...
+            'Take 2022-05-02 10.10.44 AM.trc';
+        participantCarData.scalingTimeRange = [29.96, 29.965];
+
     case 2
         participantCarData.id               = participantId;
         participantCarData.condition        = { 'nominal'; ...
@@ -65,6 +70,10 @@ switch participantId
                                                 14, 21];
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
+
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
         
     case 3
         participantCarData.id           = participantId;
@@ -99,6 +108,9 @@ switch participantId
         participantCarData.biopacProblems = biopacProblemStruct;
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
 
     case 4
         participantCarData.id           = participantId;
@@ -130,6 +142,9 @@ switch participantId
         participantCarData.biopacProblems = biopacProblemStruct;
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
  
 
     case 5
@@ -146,6 +161,11 @@ switch participantId
         participantCarData.ignoreTheseFileNumbers = [15, 19, 20 , 21, 22, 23, 24, 25, 26];
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+        
+
     case 6
         participantCarData.id           = participantId;
         participantCarData.condition        = { 'nominal'; ...
@@ -159,6 +179,11 @@ switch participantId
                                                 16, 23];
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
+
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+        
 
     case 7 
         participantCarData.id           = participantId;
@@ -174,6 +199,11 @@ switch participantId
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =1:12;
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+        
+
     case 8 
         participantCarData.id           = participantId;
         participantCarData.condition        = { 'nominal'; ...
@@ -188,6 +218,11 @@ switch participantId
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+        
+
     case 9
         participantCarData.id           = participantId;
         participantCarData.condition        = { 'nominal'; ...
@@ -201,6 +236,10 @@ switch participantId
                                                 18, 25];
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =1:12;
+
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
 
 
     case 10   
@@ -217,6 +256,11 @@ switch participantId
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+        
+
     case 11
         participantCarData.id           = participantId;
         participantCarData.condition        = { 'nominal'; ...
@@ -230,6 +274,11 @@ switch participantId
                                                 16, 23];
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
+
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+        
 
     case 12
         participantCarData.id           = participantId;
@@ -249,6 +298,10 @@ switch participantId
         participantCarData.biopacProblems = biopacProblemStruct;
         participantCarData.ignoreTheseOptitrackFileNumbers =[8];
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+        
       
     case 13 
         participantCarData.id           = participantId;
@@ -274,6 +327,9 @@ switch participantId
         participantCarData.biopacProblems = biopacProblemStruct;
         participantCarData.ignoreTheseOptitrackFileNumbers =[9];
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
       
 
     case 14 
@@ -290,6 +346,11 @@ switch participantId
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =[3];
 
+
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+        
     case 15 
         participantCarData.id           = participantId;
         participantCarData.condition        = { 'nominal'; ...
@@ -304,6 +365,11 @@ switch participantId
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =1:12;
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+
+
     case 16 
         participantCarData.id           = participantId;
         participantCarData.condition        = { 'nominal'; ...
@@ -317,6 +383,11 @@ switch participantId
                                                 24, 31];
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
+
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+        
 
     case 17 
         participantCarData.id           = participantId;
@@ -333,6 +404,11 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+
+
     case 18 
         participantCarData.id           = participantId;
         participantCarData.condition        = { 'nominal'; ...
@@ -346,6 +422,11 @@ switch participantId
                                                 16, 23];
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
+
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+
 
     case 19 
         participantCarData.id           = participantId;
@@ -365,6 +446,11 @@ switch participantId
         participantCarData.biopacProblems = biopacProblemStruct;
         participantCarData.ignoreTheseOptitrackFileNumbers =[8];
 
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+
+
     
     case 20 
         participantCarData.id           = participantId;
@@ -377,8 +463,15 @@ switch participantId
         participantCarData.blockFileNumbers = [ 3, 3;...
                                                 4, 15;...
                                                 16, 23];
+
+
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
+
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+
 
     case 21
         participantCarData.id           = participantId;
@@ -394,6 +487,10 @@ switch participantId
         participantCarData.ignoreTheseFileNumbers = [];
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
     
+        %Marker data
+        participantCarData.scalingMarkerFile = '';
+        participantCarData.scalingTimeRange = [nan,nan];        
+
 
    otherwise
         assert(0, ['Error: particpantId is not within the range of 1-21,',...
