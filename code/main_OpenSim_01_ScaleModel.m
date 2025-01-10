@@ -31,10 +31,14 @@
 % e. ClavicleLength_R 	(SJN-RCAJ)	: XYZ of rscapula and rclavicle
 %%
 
+disp('Note: Use Optitrack to look at the marker data of participants 7, 9, 15');
+
 flag_useDefaultInitialization=0;
 if(exist('flag_outerLoopMode','var') == 0)
     flag_useDefaultInitialization=1;
 else    
+
+
     if(flag_outerLoopMode==0)
         flag_useDefaultInitialization=1;
     end
@@ -51,14 +55,15 @@ end
 assert(flag_dataSet==0,'Error: Code has not yet been updated to work',...
     ' with the 2023 dataset, which includes a different marker layout.');
 
-normLength_c7_hjc_height 	= 0.350438285327423;
-default_c7_hjc 				= 0.6095;
-default_height 				= 1.74;
+
+default_c7_hjc 				= 60.95;
+default_height 				= 174;
+normLength_c7_hjc_height 	= default_c7_hjc/default_height; %$0.350438285327423;
 
 flag_runScaleTool      = 1;
 
-runThisParticipant = [{'participant01'}];%[{'participant17'}];
-runTheseTrials = [1];%[2];
+runThisParticipant  =  []; %[{'participant01'}];%[{'participant17'}];
+runTheseTrials      = [1]; %[1];%[2];
 
 %
 % Pull in the modeling classes straight from the OpenSim distribution
@@ -109,34 +114,35 @@ else
     participantFolderList=runThisParticipant;
 end
 
-for indexParticipant=1:1:length(participantFolderList)
+participantCount = length(participantFolderList);
+if(isempty(runThisParticipant) == 0)
+    participantCount = 1;
+end
+
+for indexParticipantCount=1:1:participantCount
     
-	
-    participantFolder = participantFolderList{indexParticipant};
+    indexParticipant = 0;
+    participantFolder = '';
+	if(isempty(runThisParticipant)==0)
+        indexParticipant = runThisParticipant(1,1);
+        participantFolder = 'participant';
+        idStr = num2str(indexParticipant);
+        if(length(idStr)<2)
+            idStr = ['0',idStr];            
+        end
+        participantFolder = [participantFolder,idStr];
+    else
+        indexParticipant = indexParticipantCount;
+        participantFolder = participantFolderList{indexParticipant};
+    end
+
+    
     fprintf('%s: \n',participantFolder);   
     idStr = participantFolder(end-1:end);
 	id = str2num(idStr);
 
 
-    if(flag_runScaleTool==1)    
-	    fileNumber 		= 1; 
-	    timeNormSample 	= 0; %0 is the start, 1 is the end
-    
-        %
-	    % Make updates to the few files in which the first file at its 
-	    % starting time cannot be used for scaling. We require that the  
-	    % participant have a neutral posture to be used for scaling.
-        %
-	    switch flag_dataSet
-		    case 0
-			    switch id
-				    case 1
-					    fileNumber = 1;
-					    timeNormSample = 1;				
-			    end
-		    otherwise assert(0,'Error: unknown dataset');
-	    end
-    
+    if(flag_runScaleTool==1)    	      
         %
         % Check to make sure that the participant data folder contains 
         % all necessary folders
@@ -207,6 +213,10 @@ for indexParticipant=1:1:length(participantFolderList)
             'trc',filesep,...
             participantCarData.scalingMarkerFile];
 
+        %
+        % Make a list of all of the lines to update 
+        % and form the replacement line
+        %
         modelNameKeyWord        = '<ScaleTool name';
         modelNameReplacement    = sprintf('<ScaleTool name="%s">', ...
                                            [participantFolder,'_scaled']) ;
@@ -222,12 +232,11 @@ for indexParticipant=1:1:length(participantFolderList)
 		l_c7_hjc 		= participantData.height*normLength_c7_hjc_height;
 		scaling_c7_hjc 	= l_c7_hjc / default_c7_hjc;
 
+        fprintf('\t%1.3f\tscale\n',scaling_c7_hjc);
+
         scaleKeyWord = '<scales>';
         scaleReplacement = sprintf('<scales> %1.6f %1.6f %1.6f</scales>',...
                           scaling_c7_hjc,scaling_c7_hjc,scaling_c7_hjc);
-
-        %idxFileSep = strfind(scalingMarkerFilePath,'\');
-        %scalingMarkerFilePath(1,idxFileSep) = '/';
 
         markerKeyWord = '<marker_file>';
         markerReplacement = sprintf('<marker_file>%s</marker_file>',...
@@ -254,7 +263,6 @@ for indexParticipant=1:1:length(participantFolderList)
             sprintf('<output_marker_file>%s</output_marker_file>',...
                         [participantFolder,'_scaled_markers.osim']);
 
-
         findLinesWithThisKeyword = ...
             {modelNameKeyWord;...
              modelFileKeyWord;...
@@ -280,15 +288,12 @@ for indexParticipant=1:1:length(participantFolderList)
         success = findReplaceLinesInFile(defaultScaleFile,scaleFile, ...
             findLinesWithThisKeyword, replacementLines );
         
-
-        %
-        % Set file to use for scaling and also for the marker adjustment
-        %
-		
-		
-		
-		
-
+        cd(participantFolder);
+        scaleTool = ScaleTool(scaleFile);
+        scaleTool.run();
+        cd('..');
+        
+        		
     end
 
 

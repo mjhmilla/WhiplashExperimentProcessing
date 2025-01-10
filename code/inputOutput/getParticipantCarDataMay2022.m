@@ -72,8 +72,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-02 11.29.43 AM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
         
     case 3
         participantCarData.id           = participantId;
@@ -109,8 +110,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-02 01.47.51 PM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
 
     case 4
         participantCarData.id           = participantId;
@@ -143,8 +145,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-02 12.10.39 PM_003.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
  
 
     case 5
@@ -159,11 +162,12 @@ switch participantId
                                                 9, 29;...
                                                 30, 37];
         participantCarData.ignoreTheseFileNumbers = [15, 19, 20 , 21, 22, 23, 24, 25, 26];
-        participantCarData.ignoreTheseOptitrackFileNumbers =[];
+        participantCarData.ignoreTheseOptitrackFileNumbers =[0.005,0.010];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-03 09.39.07 AM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
         
 
     case 6
@@ -181,8 +185,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-03 11.19.34 AM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
         
 
     case 7 
@@ -219,8 +224,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-03 02.54.05 PM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
         
 
     case 9
@@ -257,8 +263,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-05 10.15.19 AM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
         
 
     case 11
@@ -276,8 +283,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-05 11.21.44 AM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
         
 
     case 12
@@ -299,8 +307,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[8];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-05 12.27.41 PM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
         
       
     case 13 
@@ -328,8 +337,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[9];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile =...
+            'Take 2022-05-05 02.09.45 PM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
       
 
     case 14 
@@ -348,8 +358,9 @@ switch participantId
 
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-05 03.51.55 PM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
         
     case 15 
         participantCarData.id           = participantId;
@@ -385,8 +396,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-06 09.37.03 AM.trc';
+        participantCarData.scalingTimeRange = [30.005,30.010];        
         
 
     case 17 
@@ -405,8 +417,9 @@ switch participantId
 
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-06 11.19.59 AM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
 
 
     case 18 
@@ -424,8 +437,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-06 12.19.26 PM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
 
 
     case 19 
@@ -447,10 +461,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[8];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
-
-
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-06 01.56.26 PM.trc';
+        participantCarData.scalingTimeRange = [0.005, 0.010];        
     
     case 20 
         participantCarData.id           = participantId;
@@ -469,8 +482,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
 
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-06 03.22.47 PM.trc';
+        participantCarData.scalingTimeRange = [0.005, 0.010];        
 
 
     case 21
@@ -488,8 +502,9 @@ switch participantId
         participantCarData.ignoreTheseOptitrackFileNumbers =[];
     
         %Marker data
-        participantCarData.scalingMarkerFile = '';
-        participantCarData.scalingTimeRange = [nan,nan];        
+        participantCarData.scalingMarkerFile = ...
+            'Take 2022-05-06 04.38.22 PM.trc';
+        participantCarData.scalingTimeRange = [0.005,0.010];        
 
 
    otherwise

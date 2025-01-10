@@ -15,7 +15,10 @@ if(flag_useDefaultInitialization==1)
     flag_dataSet = 0; 
 end
 
-flag_plotMarkerData=1;
+disp('Note: Use Optitrack to look at the marker data of participants 7, 9, 15');
+
+
+flag_plotMarkerData   =1;
 flag_plotRawMarkerData=0;
 
 
@@ -23,8 +26,9 @@ flag_plotInterpolatedMarkers        = 0;
 flag_plotInterpolatedRigidBodies    = 0;
 flag_exportRigidBodyMarkers         = 1;
 
-flag_useDeprecatedOffset            = 1;
+flag_useDeprecatedOffset            = 0;
 
+runThisOneParticipant = [7];
 
 % if flag_useDeprecatedOffset is 0 then,
 %---------------------------------
@@ -201,7 +205,19 @@ cd(dataDir);
 dataDir = pwd();
 
 indexParticipant=0;
-for indexParticipant=1:1:numberOfParticipants
+
+if(isempty(runThisOneParticipant)==0)
+    indexParticipant = runThisOneParticipant(1,1);
+    numberOfParticipants = length(runThisOneParticipant);
+end
+
+for indexParticipantCount=1:1:numberOfParticipants
+
+    if(isempty(runThisOneParticipant)==0)
+        indexParticipant = runThisOneParticipant(1,1);
+    else
+        indexParticipant = indexParticipantCount;
+    end
 
     participantFolderStr = num2str(indexParticipant);
     if(length(participantFolderStr)<2)
