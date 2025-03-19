@@ -1,0 +1,70 @@
+2025/1/7
+
+Note: after writing a scaling file from Matlab fclose('all') needs to be called
+otherwise Matlab blocks OpenSim from using the file. This was time-consuming
+to debug.
+
+Ok. To dos:
+
+1. Apply Scale programmatically and see if it works
+
+2. IK script:
+  a. Read in the pose of the joints from the static file. Write these in 
+     as the manually set values for the IK coordinate tasks
+  b. Update the IK setup once
+  
+  c. For each TRC file, update the IK setup:
+    <time_range> 			: Have to check the TRC file for this one.
+	                          Make an option to produce a trimmed file: 
+								autodetect motion, then add +/- 0.5 sec.
+    <output_motion_file>	: Same name as the Take, but with mot, and maybe
+	                          all spaces filled with '_'
+	<marker_file>
+--------------------------------------------------
+Questions:
+1. What is the height of the (passenger) model?
+2. Participant:
+a. Height is in the data sheet
+b. Normalized torso segment lengths
+	DeLeva (Table 4)
+	:C7 to hip joint: 
+		male 	603.3 / 1741 
+			= 0.3465249856404365
+		female	614.8 / 1735 
+			= 0.3543515850144092
+	:STR to hip joint:
+		male 	(603.3 - 71.4) / 1741
+			= 0.3055140723721999
+		female	(614.8 - 71.4 (614.8/603.3))/ 1735
+				(614.8 - 72.8)/ 1735
+			= 0.3123919308357349
+					
+		
+1. Template model:
+opensim2022/models/passengerModel.osim
+             x,     y,    z       
+	C7 (-0.327, 0.596, 0.00)
+	HC ( 0.000, 0.0816, 0.067
+C7-HC  (-0.327  -0.514, (not incl)
+
+	l  0.6095 m
+	
+	This is very close to the 1.74m male. In deed, the Vasavada model has been constructed for a 1.74m tall male.
+
+2. Scaling:
+a. Programmatic preliminaries
+ - Evaluate l_c7_HC from the default model.
+ - Evaluate l_c7_HC using De Leva and the participant's height 
+ - Calculate the manual scaling factor for the torso.
+ - Update the Scaling script with these updated manual scaling terms.
+b. Apply the model scaling using the marker based measures.
+c. Save the model as "subjectXX_scaled.xml"
+
+3. Marker positioning
+a. Load the trial and time of a good neutral pose
+b. Apply IK.
+c. Update the position of the markers.
+d. Save the model as "subjectXX_scaled_aligned.xml"
+
+4. Then ... on with the pipline.
+
