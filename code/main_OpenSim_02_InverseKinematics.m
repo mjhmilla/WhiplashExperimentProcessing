@@ -166,8 +166,10 @@ for indexParticipantCount=1:1:participantCount
 	    defaultIKSetupFile = [startDir,filesep,'opensim2022',filesep,...
             'models',filesep,'IK_Setup.xml'];
     
-        ikSetupFile = [startDir,filesep,'opensim2022',filesep,...
-            participantFolder,filesep,...
+        participantFolderPath = [startDir,filesep,'opensim2022',filesep,...
+            participantFolder];
+
+        ikSetupFile = [participantFolderPath,filesep,...
             'IK_Setup.xml'];
 	
         copyfile(defaultIKSetupFile,ikSetupFile);        
@@ -175,8 +177,7 @@ for indexParticipantCount=1:1:participantCount
         %
         %Open the model file   
         %
-        modelFile = [startDir,filesep,'opensim2022',filesep,...
-            participantFolder,filesep,participantFolder,'_scaled.osim'];
+        modelFile = [participantFolderPath,filesep,participantFolder,'_scaled.osim'];
 
         model = Model(modelFile);
         model.initSystem();
@@ -210,21 +211,26 @@ for indexParticipantCount=1:1:participantCount
 
             motFile = trcFile;
             i = strfind(motFile,'.trc');
-            motFile = [motFile(1:i),'mot'];
+            i=i-1;
+            motFileOneFrame = [motFile(1:i),'_1Frame.mot'];
+            motFileAll = [motFile(1:i),'_All.mot'];
 
             outputMotionFileKeyWord = '<output_motion_file>';
             outputMotionFileReplacement = ...
-                [startDir,filesep,'opensim2022',filesep,...
-                 participantFolder,filesep,'ik',filesep];
+                ['<output_motion_file>',...
+                 startDir,filesep,'opensim2022',filesep,...
+                 participantFolder,filesep,'ik',filesep,...
+                 motFileOneFrame,...
+                 '</output_motion_file>'];
 
             %
             % gndx, gndy, gndz related variables
             %
-            gndxEnableKeyWord = 'gndx_enable';
+            gndxEnableKeyWord = '<apply>gndx_enable</apply>';
             gndxEnableReplacement = '<apply>false</apply>';
-            gndyEnableKeyWord = 'gndy_enable';
+            gndyEnableKeyWord = '<apply>gndy_enable</apply>';
             gndyEnableReplacement = '<apply>false</apply>';
-            gndzEnableKeyWord = 'gndz_enable';
+            gndzEnableKeyWord = '<apply>gndz_enable</apply>';
             gndzEnableReplacement = '<apply>false</apply>';
 
             gndxValueKeyWord = '<value>gndx_value';
@@ -247,6 +253,7 @@ for indexParticipantCount=1:1:participantCount
             %
             findLinesWithThisKeyword = ...
                 {timeRangeKeyWord;...
+                 outputMotionFileKeyWord;...
                  gndxEnableKeyWord;...
                  gndyEnableKeyWord;...
                  gndzEnableKeyWord;...
@@ -257,6 +264,7 @@ for indexParticipantCount=1:1:participantCount
 
             replacementLines = ...
                 {timeRangeReplacement;...
+                 outputMotionFileReplacement;...
                  gndxEnableReplacement;...
                  gndyEnableReplacement;...
                  gndzEnableReplacement;...
@@ -265,27 +273,39 @@ for indexParticipantCount=1:1:participantCount
                  gndzValueReplacement;...
                  markerFileReplacement};
 
-            ikSetupFileA = ikSetupFile;
-            i=strfind(ikSetupFileA,'.xml');
+            ikSetupFileOneFrame = ikSetupFile;
+            i=strfind(ikSetupFileOneFrame,'.xml');
             i=i-1;
-            ikSetupFileA = [ikSetupFileA(1,1:i),'_1Frame.xml'];
+            ikSetupFileOneFrame = [ikSetupFileOneFrame(1,1:i),'_1Frame.xml'];
            
             success = findReplaceLinesInFile(...
                         ikSetupFile,...
-                        ikSetupFileA, ...
+                        ikSetupFileOneFrame, ...
                         findLinesWithThisKeyword, ...
                         replacementLines );            
 
             %
-            % Copy over ikSetupFileA and make a setup file that 
+            % Run the IKTool for a short time to get the position of the 
+            % seat-pelvis joint when gndpitch, gndroll, gndyaw, and the 
+            % lumbar spine generalized coordinates meet their default
+            % targets
+            %        
+            cd(participantFolderPath);
+            ikTool = InverseKinematicsTool(ikSetupFileOneFrame);
+            ikTool.setModel(model);
+            ikTool.run();
+            cd('..');
+
+            %
+            % Copy over ikSetupFileOneFrame and make a setup file that 
             % processes all data and applies a regularization term on the
             % location of the pelvis-seat.
             %
 
-            ikSetupFileB = ikSetupFile;
-            i=strfind(ikSetupFileB,'.xml');
-            i=i-1;
-            ikSetupFileB = [ikSetupFileB(1,1:i),'_AllFrames.xml'];
+            %ikSetupFileB = ikSetupFile;
+            %i=strfind(ikSetupFileB,'.xml');
+            %i=i-1;
+            %ikSetupFileB = [ikSetupFileB(1,1:i),'_AllFrames.xml'];
         end
 
 
@@ -296,10 +316,7 @@ for indexParticipantCount=1:1:participantCount
         % targets
         %        
         
-        cd(participantFolder);
-        scaleTool = ScaleTool(scaleFile);
-        scaleTool.run();
-        cd('..');
+
         
         		
     end
