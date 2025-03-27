@@ -22,7 +22,6 @@ if(exist('flag_outerLoopMode','var') == 0)
     flag_useDefaultInitialization=1;
 else    
 
-
     if(flag_outerLoopMode==0)
         flag_useDefaultInitialization=1;
     end
@@ -41,9 +40,11 @@ assert(flag_dataSet==0,'Error: Code has not yet been updated to work',...
 
 
 flag_runIKTool      = 1;
-
+flag_quickCheck     = 1; %Will only process 1 second of data
 runThisParticipant  =  []; %[{'participant01'}];%[{'participant17'}];
 runTheseTrials      = [1]; %[1];%[2];
+
+
 
 %
 % Pull in the modeling classes straight from the OpenSim distribution
@@ -170,7 +171,7 @@ for indexParticipantCount=1:1:participantCount
             participantFolder];
 
         ikSetupFile = [participantFolderPath,filesep,...
-            'IK_Setup.xml'];
+                       'IK_Setup.xml'];
 	
         copyfile(defaultIKSetupFile,ikSetupFile);        
 
@@ -216,11 +217,15 @@ for indexParticipantCount=1:1:participantCount
             motFileAll = [motFile(1:i),'_All.mot'];
 
             outputMotionFileKeyWord = '<output_motion_file>';
+
+            outputMotionFile = ...
+                [startDir,filesep,'opensim2022',filesep,...
+                 participantFolder,filesep,'ik',filesep,...
+                 motFileOneFrame];
+
             outputMotionFileReplacement = ...
                 ['<output_motion_file>',...
-                 startDir,filesep,'opensim2022',filesep,...
-                 participantFolder,filesep,'ik',filesep,...
-                 motFileOneFrame,...
+                 outputMotionFile,...
                  '</output_motion_file>'];
 
             %
@@ -297,27 +302,232 @@ for indexParticipantCount=1:1:participantCount
             cd('..');
 
             %
-            % Copy over ikSetupFileOneFrame and make a setup file that 
-            % processes all data and applies a regularization term on the
-            % location of the pelvis-seat.
+            % Load the single frame IK data set and get the position of
+            % the pelvis-ground joint
             %
+            motCoordsData = Storage(outputMotionFile);
 
-            %ikSetupFileB = ikSetupFile;
-            %i=strfind(ikSetupFileB,'.xml');
-            %i=i-1;
-            %ikSetupFileB = [ikSetupFileB(1,1:i),'_AllFrames.xml'];
+            modelCoordSet   = model.getCoordinateSet();
+            nCoords         = modelCoordSet.getSize();
+            gndxyz          = [1,1,1].*nan;
+            gndName         = {'gndx','gndy','gndz'};
+            idxGnd          = 1;
+
+            for z=0:1:(nCoords-1)
+                coordValue = ArrayDouble();
+                currentCoord = modelCoordSet.get(z);
+                coordName = currentCoord.getName();
+                if(idxGnd <= 3)
+                    if( strfind(coordName,gndName{idxGnd})==1)
+                        motCoordsData.getDataColumn(currentCoord.getName(),...
+                                                    coordValue);
+                        gndxyz(1,idxGnd) = coordValue.getitem(0);
+                        idxGnd=idxGnd+1;
+                    end
+                end
+            end
+
+            %
+            % In the next IK configuration set gndx, gndy, and gndz
+            % and put penalty terms on each
+            %
+            timeRangeReplacement = ...
+                sprintf('<time_range>%1.3f %1.3f</time_range>',...
+                         timeStart, timeEnd);            
+
+            if(flag_quickCheck==1)
+                timeRangeReplacement = ...
+                    sprintf('<time_range>%1.3f %1.3f</time_range>',...
+                             (timeStart+0.25), (timeStart+0.50));            
+            end
+
+            outputMotionFile = ...
+                [startDir,filesep,'opensim2022',filesep,...
+                 participantFolder,filesep,'ik',filesep,...
+                 motFileAll];
+
+            outputMotionFileReplacement = ...
+                ['<output_motion_file>',...
+                 outputMotionFile,...
+                 '</output_motion_file>'];
+
+            %
+            % gndx, gndy, gndz related variables
+            %
+            gndxEnableKeyWord       = '<apply>gndx_enable</apply>';
+            gndxEnableReplacement   = '<apply>true</apply>';
+            gndyEnableKeyWord       = '<apply>gndy_enable</apply>';
+            gndyEnableReplacement   = '<apply>true</apply>';
+            gndzEnableKeyWord       = '<apply>gndz_enable</apply>';
+            gndzEnableReplacement   = '<apply>true</apply>';
+
+            gndxValueKeyWord        = '<value>gndx_value';
+            gndxValueReplacement    = ...
+                sprintf('<value>%1.6f</value>',gndxyz(1,1));
+
+            gndyValueKeyWord        = '<value>gndy_value';
+            gndyValueReplacement    = ...
+                sprintf('<value>%1.6f</value>',gndxyz(1,2));
+
+            gndzValueKeyWord        = '<value>gndz_value';
+            gndzValueReplacement    = ... 
+                sprintf('<value>%1.6f</value>',gndxyz(1,3));
+
+            findLinesWithThisKeyword = ...
+                {timeRangeKeyWord;...
+                 outputMotionFileKeyWord;...
+                 gndxEnableKeyWord;...
+                 gndyEnableKeyWord;...
+                 gndzEnableKeyWord;...
+                 gndxValueKeyWord;...
+                 gndyValueKeyWord;...
+                 gndzValueKeyWord;...
+                 markerFileKeyWord};
+
+            replacementLines = ...
+                {timeRangeReplacement;...
+                 outputMotionFileReplacement;...
+                 gndxEnableReplacement;...
+                 gndyEnableReplacement;...
+                 gndzEnableReplacement;...
+                 gndxValueReplacement;...
+                 gndyValueReplacement;...
+                 gndzValueReplacement;...
+                 markerFileReplacement};
+
+
+            ikSetupFileAllFrames = ikSetupFile;
+            i=strfind(ikSetupFileAllFrames,'.xml');
+            i=i-1;
+            ikSetupFileAllFrames = [ikSetupFileAllFrames(1,1:i),...
+                                    '_AllFrames.xml'];
+           
+            success = findReplaceLinesInFile(...
+                        ikSetupFile,...
+                        ikSetupFileAllFrames, ...
+                        findLinesWithThisKeyword, ...
+                        replacementLines );            
+
+            %
+            % Run the IKTool for all of the data
+            %        
+            cd(participantFolderPath);
+            ikTool = InverseKinematicsTool(ikSetupFileAllFrames);
+            ikTool.setModel(model);
+            ikTool.set_report_marker_locations(true);
+            ikTool.run();
+            cd('..');       
+
+            %
+            % Copy the IK marker files over 
+            %
+            cd(participantFolderPath);
+            markerErrorsSto = trcFile;
+            i = strfind(markerErrorsSto,'.trc');
+            i=i-1;
+            markerErrorsSto = [markerErrorsSto(1:i),...
+                              '_ik_marker_errors.sto'];
+            markerLocationsSto = [markerErrorsSto(1:i),...
+                                 '_ik_model_marker_locations.sto'];
+            movefile('_ik_marker_errors.sto',...
+                ['ik_markers',filesep,markerErrorsSto]);
+
+            movefile('_ik_model_marker_locations.sto',...
+                ['ik_markers',filesep,markerLocationsSto]);
+
+            cd('..');
+
+
+            %
+            % Load the model marker locations & the experimental marker
+            % measurements
+            %
+        
+            cd(participantFolderPath);
+            ikMarkerFile    = ['ik_markers',filesep,markerLocationsSto];
+            motMarkerData   = Storage(ikMarkerFile);
+            motColLabels = motMarkerData.getColumnLabels;
+            nLabels = motColLabels.size();
+            
+            dt      = 1/double(trcMetaData.OrigDataRate);
+            nFrames = double(trcMetaData.NumFrames);
+            trcTime = ([1:1:nFrames]').*dt;
+
+            trcDataScaling = 1;
+            if(strfind(trcMetaData.Units,'mm')==1)
+                trcDataScaling=0.001;
+            end
+
+            for i=1:1:length(trcMarkerData)
+
+                %Get the trc marker location
+                markerName = trcMarkerData(i).markerName;
+
+                %Extract time,x,y,z data from the model
+                coordEndings ={'_tx','_ty','_tz'};
+                coordValues = [];
+                for j=0:1:3
+                    coordNameTarget='time';
+                    if(j>=1)
+                        coordNameTarget = [markerName,coordEndings{j}];
+                    end
+                    modelMarkerLocation = ArrayDouble();
+                    z=0;
+                    found=0;
+                    
+                    while(found==0 && z < (nLabels-1))
+                        coordName    = motColLabels.get(z);
+                        if(strfind(coordNameTarget,coordName)==1)
+                            if(strfind(coordNameTarget,'time')==1)
+                                motMarkerData.getTimeColumn(modelMarkerLocation);
+                            else
+                                motMarkerData.getDataColumn(coordName,...
+                                                            modelMarkerLocation);
+                            end
+                            found=1;
+                        end
+                        z=z+1;
+                    end
+                    vec=[];
+                    nItems=modelMarkerLocation.size()-1;
+                    for z=0:1:nItems
+                        vec=[vec(:);modelMarkerLocation.get(z)];
+                    end
+                    coordValues = [coordValues, vec];
+                end
+                
+                %Evaluate the error between the TRC and model markers
+                %at the points in time from the IK solution
+
+                markerError = zeros(size(coordValues,1),1);
+
+                for j=1:1:size(coordValues,1)
+                    t       = coordValues(j,1);
+                    ikXYZ   = interp1(coordValues(:,1),...
+                                      coordValues(:,2:4),t);
+                    expXYZ  = interp1(trcTime,trcMarkerData(i).r0M0,t);
+                    expXYZ = expXYZ.*trcDataScaling;
+                    rXYZ = ikXYZ-expXYZ;
+                    markerError(j,1) = sqrt(sum(rXYZ.^2));
+                end
+
+                
+                disp('You are here');
+                % To dos
+                % 1. Make a table that has time, error1, ...
+                % 2. Make a header that has time, markerName1,...
+                % 3. Write a csv file of marker errors
+                % 4. Make a box-and-whisker plot of all of the
+                %    marker errors. Put names on the plot + IK weight
+               
+            end
+
+            cd('..');
+            % The TRC was already loaded
+            % [trcMetaData, trcFrameTime, trcMarkerData]
+
+
         end
-
-
-        %
-        % Run the IKTool for a short time to get the position of the 
-        % seat-pelvis joint when gndpitch, gndroll, gndyaw, and the 
-        % lumbar spine generalized coordinates meet their default
-        % targets
-        %        
-        
-
-        
         		
     end
 
